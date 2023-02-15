@@ -29,6 +29,7 @@ lazy val db = (project in file("./db"))
   .settings(
     libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.15" % Test,
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.15" % Test,
+    libraryDependencies += "org.scalatestplus" %% "scalacheck-1-17" % "3.2.15.0" % Test,
 
     libraryDependencies ++= Seq(
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.40.12" % Test,
