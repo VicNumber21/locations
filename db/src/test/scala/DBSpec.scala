@@ -12,6 +12,8 @@ import com.dimafeng.testcontainers.ExposedService
 import com.dimafeng.testcontainers.scalatest.TestContainerForAll
 import org.testcontainers.containers.wait.strategy.Wait
 import com.dimafeng.testcontainers.ContainerDef
+import com.dimafeng.testcontainers.Services
+import com.dimafeng.testcontainers.Service
 import com.dimafeng.testcontainers.WaitingForService
 
 import java.time.LocalDateTime
@@ -134,6 +136,7 @@ class LocationsSqlSpec extends AnyFlatSpec
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
       env = DbEnv.random,
+      services = Services.Specific(Seq(Service("db"))),
       waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", DbEnv.waitTimes())))
     )
 
@@ -171,6 +174,7 @@ class LocationsTableSpec extends AnyFlatSpec
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
       env = DbEnv.random,
+      services = Services.Specific(Seq(Service("db"))),
       waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", DbEnv.waitTimes())))
     )
 
