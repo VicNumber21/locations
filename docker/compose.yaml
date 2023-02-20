@@ -1,4 +1,9 @@
 services:
+  api:
+    image: vportnov/locations-api
+    ports:
+      - "${API_PORT}:8080"
+
   db:
     image: vportnov/locations-db
     environment:
