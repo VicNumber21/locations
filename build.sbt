@@ -18,6 +18,8 @@ lazy val dockerNamespace = "vportnov"
 lazy val dockerApiName = "locations-api"
 lazy val dockerDbName = "locations-db"
 
+lazy val build = taskKey[Unit]("production build sequence")
+
 
 lazy val api = (project in file("./api"))
   .settings(commonSetting)
@@ -49,6 +51,13 @@ lazy val api = (project in file("./api"))
         tag = Some(version.value)
       )
     )
+  )
+  .settings(
+    build := Def.sequential(
+      Compile / compile,
+      Compile / packCopyDependencies,
+      docker
+    ).value
   )
   .enablePlugins(DockerPlugin)
   .enablePlugins(PackPlugin)
@@ -89,6 +98,11 @@ lazy val db = (project in file("./db"))
         tag = Some(version.value)
       )
     )
+  )
+  .settings(
+    build := Def.sequential(
+      docker
+    ).value
   )
   .enablePlugins(DockerPlugin)
 
