@@ -100,6 +100,10 @@ lazy val db = (project in file("./db"))
     )
   )
   .settings(
+    Test / parallelExecution := false, // TODO how to make it running in parallel?
+    (Test / test) := (Test / test).dependsOn(docker).value
+  )
+  .settings(
     build := Def.sequential(
       docker
     ).value
