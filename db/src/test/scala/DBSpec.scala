@@ -55,11 +55,11 @@ object DbEnv {
 
   val random =
     Map(
-      "POSTGRES_USER" -> s"user_${Random.alphanumeric.take(10).mkString}" ,
-      "POSTGRES_PASSWORD" -> s"pswd_${Random.alphanumeric.take(10).mkString}",
-      "POSTGRES_DB_PATH" -> path,
-      "POSTGRES_DB_NAME" -> "locations",
-      "POSTGRES_PORT" -> s"${port}"
+      "DB_ADMIN" -> s"user_${Random.alphanumeric.take(10).mkString}" ,
+      "DB_PASSWORD" -> s"pswd_${Random.alphanumeric.take(10).mkString}",
+      "DB_PATH" -> path,
+      "DB_NAME" -> "locations",
+      "DB_PORT" -> s"${port}"
     )
 
   val transactor =
