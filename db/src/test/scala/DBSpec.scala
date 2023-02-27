@@ -42,10 +42,10 @@ object DbEnv:
   val portEnd = 5999;
   val rnd = new Random;
   val port = portBegin + rnd.nextInt(portEnd - portBegin + 1)
-  val path = if (isDebug) "/tmp/locations_db_fast_test"
+  val path = if isDebug then "/tmp/locations_db_fast_test"
              else s"/tmp/locations_db_testing/${Random.alphanumeric.take(10).mkString}"
   val waitTimes = (() =>
-    var times = if (isDebug) 1 else 2
+    var times = if isDebug then 1 else 2
 
     () => 
       val ret = times
@@ -61,7 +61,6 @@ object DbEnv:
       "DB_NAME" -> "locations",
       "DB_PORT" -> s"${port}"
     )
-
   val transactor =
     Transactor.fromDriverManager[IO](
       "org.postgresql.Driver",
