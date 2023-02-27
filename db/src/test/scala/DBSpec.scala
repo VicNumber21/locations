@@ -37,7 +37,7 @@ import doobie.scalatest.IOChecker
 val isDebug = false
 
 
-object DbEnv {
+object DbEnv:
   val portBegin = 5000;
   val portEnd = 5999;
   val rnd = new Random;
@@ -69,13 +69,11 @@ object DbEnv {
       "locator",
       "locator"
     )
-}
 
-case class Location(id: String, longitude: BigDecimal = 0, latitude: BigDecimal = 0, created: Option[LocalDateTime] = None) {
+case class Location(id: String, longitude: BigDecimal = 0, latitude: BigDecimal = 0, created: Option[LocalDateTime] = None):
   def withoutDate = Location.WithoutDate(id, longitude, latitude)
-}
 
-object Location {
+object Location:
   case class WithoutDate(id: String, longitude: BigDecimal = 0, latitude: BigDecimal = 0)
 
   def selectAll() = select(sql.query.all)
@@ -101,16 +99,15 @@ object Location {
       .transact(DbEnv.transactor)
       .unsafeRunSync()
 
-  object sql {
-    object query {
+  object sql:
+    object query:
       val all = sql"SELECT location_id, location_longitude, location_latitude, location_created FROM locations"
           .query[Location]
 
       val allWithoutDate = sql"SELECT location_id, location_longitude, location_latitude FROM locations"
           .query[Location.WithoutDate]
-    }
 
-    object insert {
+    object insert:
       val withDate = Update[Location](
         "INSERT INTO locations (location_id, location_longitude, location_latitude, location_created) values (?, ?, ?, ?)"
       )
@@ -118,20 +115,16 @@ object Location {
       val withoutDate = Update[Location.WithoutDate](
         "INSERT INTO locations (location_id, location_longitude, location_latitude) values (?, ?, ?)"
       )
-    }
 
-    object delete {
+    object delete:
       val all = sql"DELETE FROM locations"
       .update
-    }
-  }
   
   private val transactor = DbEnv.transactor
-}
 
 class LocationsSqlSpec extends AnyFlatSpec
                           with TestContainerForAll
-                          with IOChecker {
+                          with IOChecker:
   override val containerDef =
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
@@ -163,13 +156,12 @@ class LocationsSqlSpec extends AnyFlatSpec
   "Locations.sql.delete.all" should "be valid" in {
       check(Location.sql.delete.all)
   }
-}
 
 class LocationsTableSpec extends AnyFlatSpec
                           with TestContainerForAll
                           with IOChecker
                           with BeforeAndAfter
-                          with GivenWhenThen {
+                          with GivenWhenThen:
   override val containerDef =
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
@@ -556,4 +548,3 @@ class LocationsTableSpec extends AnyFlatSpec
 
       created shouldBe expectedCreated
   }
-}
