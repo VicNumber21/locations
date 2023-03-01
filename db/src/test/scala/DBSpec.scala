@@ -342,7 +342,7 @@ class LocationsTableSpec extends AnyFlatSpec
 
   it should "has 6 digits scale" in {
     lazy val increasingScale: LazyList[BigDecimal] = {
-      def loop(x: BigDecimal): LazyList[BigDecimal] = x #:: loop(x.intValue + 1 + (x + 1) / 10 )
+      def loop(x: BigDecimal): LazyList[BigDecimal] = x #:: loop(x.intValue + 1 + (x + 1) / 10)
       loop(0)
     }
 
