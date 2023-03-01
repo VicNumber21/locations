@@ -33,20 +33,17 @@ object Routes:
   // val idsQuery: EndpointInput[IdsQuery] = query[OptionalStrings]("ids").mapTo[IdsQuery]
 
   private val baseEndpoint = endpoint
-    .in("api" / "v1.0")
+    .in("api" / "v1.0" / "locations")
+    .errorOut(stringBody)
 
   private val createEndpoint: PublicEndpoint[create.Request, String, create.Response, Any] = baseEndpoint
     .post
-    .in("locations")
     .in(jsonBody[create.Request])
-    .errorOut(stringBody)
     .out(jsonBody[create.Response])
 
   private val readEndpoint: PublicEndpoint[read.Request, String, read.Response, Any] = baseEndpoint
     .get
-    .in("locations")
     .in(periodQuery)
-    .errorOut(stringBody)
     .out(jsonBody[read.Response])
   
   private val allEnpoints = List(createEndpoint, readEndpoint)
