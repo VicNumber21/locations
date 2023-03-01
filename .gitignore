@@ -4,3 +4,4 @@
 .bsp
 target
 metals.sbt
+*.worksheet.sc

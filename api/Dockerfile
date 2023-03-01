@@ -17,4 +17,4 @@ COPY --from=jre-build /javaruntime $JAVA_HOME
 
 COPY target/lib/* /opt/app/lib/
 EXPOSE 8080
-ENTRYPOINT ["java", "-cp", "/opt/app/lib/*", "com.vportnov.location.api.LocationApiServer"]
+ENTRYPOINT ["java", "-cp", "/opt/app/lib/*", "com.vportnov.locations.api.App"]
