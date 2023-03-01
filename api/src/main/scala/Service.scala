@@ -16,12 +16,17 @@ import com.vportnov.locations.api.Routes
 object Service:
   def app: HttpApp[IO] = Router("/" -> (routes)).orNotFound
 
-  private val readLogic: (PeriodQuery) => IO[read.Response] =
-    case PeriodQuery(None, None) => IO(List(LocationResponse("NoDates", 0, 0, LocalDateTime.now())))
-    case PeriodQuery(Some(date), None) => IO(List(LocationResponse("OnlyFrom", 0, 0, date)))
-    case PeriodQuery(None, Some(date)) => IO(List(LocationResponse("OnlyTo", 0, 0, date)))
-    case PeriodQuery(Some(_), Some(_)) => IO(List(LocationResponse("BothFromAndTo", 0, 0, LocalDateTime.now())))
-    case _ => IO(List.empty[LocationResponse])
+  private val readLogic: (read.Request) => IO[read.Response] = (periodQuery, ids) =>
+    val location @ LocationResponse(baseId, _, _, created) = periodQuery match
+      case PeriodQuery(None, None) => LocationResponse("NoDates", 0, 0, LocalDateTime.now())
+      case PeriodQuery(Some(date), None) => LocationResponse("OnlyFrom", 0, 0, date)
+      case PeriodQuery(None, Some(date)) => LocationResponse("OnlyTo", 0, 0, date)
+      case PeriodQuery(Some(_), Some(_)) => LocationResponse("BothFromAndTo", 0, 0, LocalDateTime.now())
+
+    val response = if ids.length > 0
+                      then ids.map(id => LocationResponse(s"$baseId-$id", 0, 0, created))
+                      else List(location)
+    IO(response)
 
   private val createLogic: (create.Request) => IO[create.Response] = requests => IO(requests.map {
     case LocationRequest(id, longitude, latitude, None) => LocationResponse(id, longitude, latitude, LocalDateTime.now())

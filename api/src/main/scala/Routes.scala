@@ -28,9 +28,9 @@ object Routes:
     .and(query[OptionalDateTime]("to"))
     .mapTo[PeriodQuery]
 
-  // type OptionalStrings = Option[Seq[String]]
-  // case class IdsQuery(id: OptionalStrings)
-  // val idsQuery: EndpointInput[IdsQuery] = query[OptionalStrings]("ids").mapTo[IdsQuery]
+  val idsQuery: EndpointInput[IdsQuery] =
+    query[IdsQuery]("ids")
+      .validateIterable(meta.id.validator)
 
   private val baseEndpoint = endpoint
     .in("api" / "v1.0" / "locations")
@@ -43,7 +43,7 @@ object Routes:
 
   private val readEndpoint: PublicEndpoint[read.Request, String, read.Response, Any] = baseEndpoint
     .get
-    .in(periodQuery)
+    .in(periodQuery).in(idsQuery)
     .out(jsonBody[read.Response])
   
   private val allEnpoints = List(createEndpoint, readEndpoint)

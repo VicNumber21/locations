@@ -20,7 +20,7 @@ object types:
       type Response = List[structures.LocationResponse]
     
     object read:
-      type Request = structures.PeriodQuery
+      type Request = (structures.PeriodQuery, structures.IdsQuery)
       type Response = List[structures.LocationResponse]
 
     object update:
@@ -76,6 +76,8 @@ object types:
     type OptionalBoolean = Option[Boolean]
     final case class PeriodQuery(from: OptionalDateTime, to: OptionalDateTime)
 
+    type IdsQuery = List[String]
+
     object meta:
       object request:
         object create:
@@ -87,7 +89,7 @@ object types:
       object id:
         val description = "Alphanameric id of location."
         val example = "location123"
-        val validator = Validator.nonEmptyString.and(Validator.maxLength(255)).and(Validator.pattern("^[a-zA-Z0-9]+$"))
+        val validator = Validator.nonEmptyString[String].and(Validator.maxLength(255)).and(Validator.pattern("^[a-zA-Z0-9]+$"))
 
       object longitude:
         val description = "Longitude of location in decimal format."
