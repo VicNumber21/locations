@@ -31,7 +31,9 @@ lazy val api = (project in file("./api"))
       "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.2.8",
       "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.2.8",
       "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % "1.2.8",
-      "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.2.8"
+      "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle" % "1.2.8",
+
+      "org.slf4j" % "slf4j-simple" % "2.0.6"
     )
   )
   .settings(
@@ -74,7 +76,6 @@ lazy val db = (project in file("./db"))
 
     libraryDependencies ++= Seq(
       "com.dimafeng" %% "testcontainers-scala-scalatest" % "0.40.12" % Test,
-      "org.slf4j" % "slf4j-api" % "2.0.6" % Test,
       "org.slf4j" % "slf4j-simple" % "2.0.6" % Test
     ),
 
