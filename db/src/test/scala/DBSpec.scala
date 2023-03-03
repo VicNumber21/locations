@@ -37,13 +37,14 @@ import doobie.scalatest.IOChecker
 val isDebug = false
 
 
-object DbEnv:
+final class DbEnv:
   val portBegin = 5000;
   val portEnd = 5999;
   val rnd = new Random;
   val port = portBegin + rnd.nextInt(portEnd - portBegin + 1)
   val path = if isDebug then "/tmp/locations_db_fast_test"
              else s"/tmp/locations_db_testing/${Random.alphanumeric.take(10).mkString}"
+
   val waitTimes = (() =>
     var times = if isDebug then 1 else 2
 
@@ -61,6 +62,7 @@ object DbEnv:
       "DB_NAME" -> "locations",
       "DB_PORT" -> s"${port}"
     )
+
   val transactor =
     Transactor.fromDriverManager[IO](
       "org.postgresql.Driver",
@@ -69,33 +71,38 @@ object DbEnv:
       "locator"
     )
 
+
+
+val dbEnv1 = new DbEnv()
+val dbEnv2 = if isDebug then dbEnv1 else new DbEnv()
+
 case class Location(id: String, longitude: BigDecimal = 0, latitude: BigDecimal = 0, created: Option[LocalDateTime] = None):
   def withoutDate = Location.WithoutDate(id, longitude, latitude)
 
 object Location:
   case class WithoutDate(id: String, longitude: BigDecimal = 0, latitude: BigDecimal = 0)
 
-  def selectAll() = select(sql.query.all)
-  def selectAllWithoutDate() = select(sql.query.allWithoutDate)
-  def select[T](query: doobie.Query0[T]) : List[T] =
+  def selectAll()(using transactor: Transactor[IO]) = select(sql.query.all)
+  def selectAllWithoutDate()(using transactor: Transactor[IO]) = select(sql.query.allWithoutDate)
+  def select[T](query: doobie.Query0[T])(using transactor: Transactor[IO]) : List[T] =
     query
       .to[List]
       .transact(transactor)
       .unsafeRunSync()
   
-  def insertWithDate = insert(sql.insert.withDate)
-  def insertWithoutDate = insert(sql.insert.withoutDate)
-  def insert[T](update: doobie.Update[T])(locations: Seq[T]) : Int =
+  def insertWithDate(using transactor: Transactor[IO]) = insert(sql.insert.withDate)
+  def insertWithoutDate(using transactor: Transactor[IO]) = insert(sql.insert.withoutDate)
+  def insert[T](update: doobie.Update[T])(locations: Seq[T])(using transactor: Transactor[IO]) : Int =
     update
       .updateMany(locations)
-      .transact(DbEnv.transactor)
+      .transact(transactor)
       .unsafeRunSync()
 
-  def deleteAll() = delete(sql.delete.all)
-  def delete(update: doobie.Update0) : Int =
+  def deleteAll()(using transactor: Transactor[IO]) = delete(sql.delete.all)
+  def delete(update: doobie.Update0)(using transactor: Transactor[IO]) : Int =
     update
       .run
-      .transact(DbEnv.transactor)
+      .transact(transactor)
       .unsafeRunSync()
 
   object sql:
@@ -118,8 +125,6 @@ object Location:
     object delete:
       val all = sql"DELETE FROM locations"
       .update
-  
-  private val transactor = DbEnv.transactor
 
 class LocationsSqlSpec extends AnyFlatSpec
                           with TestContainerForAll
@@ -127,12 +132,13 @@ class LocationsSqlSpec extends AnyFlatSpec
   override val containerDef =
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
-      env = DbEnv.random,
+      env = dbEnv1.random,
       services = Services.Specific(Seq(Service("db"))),
-      waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", DbEnv.waitTimes())))
+      waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", dbEnv1.waitTimes())))
     )
 
-  val transactor = DbEnv.transactor
+  val transactor = dbEnv1.transactor
+  given Transactor[IO] = dbEnv1.transactor
 
   info("As a developer I need to verify locations sql before to use it in tests")
 
@@ -164,12 +170,13 @@ class LocationsTableSpec extends AnyFlatSpec
   override val containerDef =
     DockerComposeContainer.Def(
       composeFiles = new File("./docker/compose.yaml"),
-      env = DbEnv.random,
+      env = dbEnv2.random,
       services = Services.Specific(Seq(Service("db"))),
-      waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", DbEnv.waitTimes())))
+      waitingFor = Some(WaitingForService("db_1", Wait.forLogMessage(".*database system is ready to accept connections.*", dbEnv2.waitTimes())))
     )
 
-  val transactor = DbEnv.transactor
+  val transactor = dbEnv2.transactor
+  given Transactor[IO] = dbEnv2.transactor
 
   after {
     info("--- cleanup")
