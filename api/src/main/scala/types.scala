@@ -16,25 +16,52 @@ import java.time.Period
 object types:
   object api:
     object create:
-      type Request = List[structures.LocationRequest]
+      type Request = List[structures.LocationCreateRequest]
       type Response = List[structures.LocationResponse]
+
+    object createOne:
+      type RequestPath = String
+      type RequestBody = structures.LocationCreateOneRequest
+      type Request = (RequestPath, RequestBody)
+      type Response = structures.LocationResponse
+    
     
     object read:
       type Request = (structures.PeriodQuery, structures.IdsQuery)
       type Response = List[structures.LocationResponse]
 
+    object readOne:
+      type Request = String
+      type Response = structures.LocationResponse
+
     object update:
-      type Request = List[structures.LocationRequest]
+      type Request = List[structures.LocationCreateRequest]
       type Response = List[structures.LocationResponse]
 
   object structures:
     @description(meta.request.create.description)
-    final case class LocationRequest(
+    final case class LocationCreateRequest(
       @description(meta.id.description)
       @encodedExample(meta.id.example)
       @validate(meta.id.validator)
       id: String,
 
+      @description(meta.longitude.description)
+      @encodedExample(meta.longitude.example)
+      @validate(meta.longitude.validator)
+      longitude: BigDecimal,
+
+      @description(meta.latitude.description)
+      @encodedExample(meta.latitude.example)
+      @validate(meta.latitude.validator)
+      latitude: BigDecimal,
+
+      @description(meta.created.optional.description)
+      @encodedExample(meta.created.optional.example)
+      created: Option[LocalDateTime] = None
+    )
+
+    final case class LocationCreateOneRequest(
       @description(meta.longitude.description)
       @encodedExample(meta.longitude.example)
       @validate(meta.longitude.validator)

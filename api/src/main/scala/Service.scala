@@ -27,13 +27,25 @@ object Service:
                       then ids.map(id => LocationResponse(s"$baseId-$id", 0, 0, created))
                       else List(location)
     IO(response)
+  
+  private val readOneLogic: (readOne.Request) => IO[readOne.Response] = (id) =>
+    for {
+      list <- readLogic(PeriodQuery(None, None), List(id))
+    } yield list.head
 
   private val createLogic: (create.Request) => IO[create.Response] = requests => IO(requests.map {
-    case LocationRequest(id, longitude, latitude, None) => LocationResponse(id, longitude, latitude, LocalDateTime.now())
-    case LocationRequest(id, longitude, latitude, Some(date)) => LocationResponse(id, longitude, latitude, date)
+    case LocationCreateRequest(id, longitude, latitude, None) => LocationResponse(id, longitude, latitude, LocalDateTime.now())
+    case LocationCreateRequest(id, longitude, latitude, Some(date)) => LocationResponse(id, longitude, latitude, date)
   })
+
+  private val createOneLogic: (createOne.Request) => IO[createOne.Response] = (id, request) =>
+    for {
+      list <- createLogic(List(LocationCreateRequest(id, request.longitude, request.latitude, request.created)))
+    } yield list.head
 
   private val routes: HttpRoutes[IO] = 
     Routes.getCreateRoute(createLogic) <+>
+    Routes.getCreateOneRoute(createOneLogic) <+>
     Routes.getReadRoute(readLogic) <+>
+    Routes.getReadOneRoute(readOneLogic) <+>
     Routes.swaggerUIRoutes
