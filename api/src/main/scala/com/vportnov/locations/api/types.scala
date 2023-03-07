@@ -20,9 +20,8 @@ object types:
       type Response = List[structures.LocationResponse]
 
     object createOne:
-      type RequestPath = String
       type RequestBody = structures.LocationCreateOneRequest
-      type Request = (RequestPath, RequestBody)
+      type Request = (structures.Id, RequestBody)
       type Response = structures.LocationResponse
     
     
@@ -31,20 +30,36 @@ object types:
       type Response = List[structures.LocationResponse]
 
     object readOne:
-      type Request = String
+      type Request = structures.Id
       type Response = structures.LocationResponse
 
     object update:
-      type Request = List[structures.LocationCreateRequest]
+      type Request = List[structures.LocationUpdateRequest]
       type Response = List[structures.LocationResponse]
 
+    object updateOne:
+      type RequestBody = structures.LocationUpdateOneRequest
+      type Request = (structures.Id, RequestBody)
+      type Response = structures.LocationResponse
+    
+    object delete:
+      type Request = structures.IdsQuery
+      type Response = Unit
+
+    object deleteOne:
+      type Request = structures.Id
+      type Response = Unit
+
+
   object structures:
+    type Id = String
+
     @description(meta.request.create.description)
     final case class LocationCreateRequest(
       @description(meta.id.description)
       @encodedExample(meta.id.example)
       @validate(meta.id.validator)
-      id: String,
+      id: Id,
 
       @description(meta.longitude.description)
       @encodedExample(meta.longitude.example)
@@ -77,12 +92,41 @@ object types:
       created: Option[LocalDateTime] = None
     )
 
+    final case class LocationUpdateRequest(
+      @description(meta.id.description)
+      @encodedExample(meta.id.example)
+      @validate(meta.id.validator)
+      id: Id,
+
+      @description(meta.longitude.description)
+      @encodedExample(meta.longitude.example)
+      @validate(meta.longitude.validator)
+      longitude: BigDecimal,
+
+      @description(meta.latitude.description)
+      @encodedExample(meta.latitude.example)
+      @validate(meta.latitude.validator)
+      latitude: BigDecimal,
+    )
+
+    final case class LocationUpdateOneRequest(
+      @description(meta.longitude.description)
+      @encodedExample(meta.longitude.example)
+      @validate(meta.longitude.validator)
+      longitude: BigDecimal,
+
+      @description(meta.latitude.description)
+      @encodedExample(meta.latitude.example)
+      @validate(meta.latitude.validator)
+      latitude: BigDecimal,
+    )
+
     @description(meta.response.description)
     final case class LocationResponse(
       @description(meta.id.description)
       @encodedExample(meta.id.example)
       @validate(meta.id.validator)
-      id: String,
+      id: Id,
 
       @description(meta.longitude.description)
       @encodedExample(meta.longitude.example)
@@ -103,7 +147,7 @@ object types:
     type OptionalBoolean = Option[Boolean]
     final case class PeriodQuery(from: OptionalDateTime, to: OptionalDateTime)
 
-    type IdsQuery = List[String]
+    type IdsQuery = List[Id]
 
     object meta:
       object request:
