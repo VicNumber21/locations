@@ -10,6 +10,10 @@ import sttp.tapir.json.circe._
 import sttp.tapir.generic.auto._
 import io.circe.generic.auto._
 
+import sttp.capabilities.fs2.Fs2Streams
+import fs2.Stream
+import java.nio.charset.StandardCharsets
+
 import com.vportnov.locations.api.types.api._
 import com.vportnov.locations.api.types.structures._
 
@@ -23,6 +27,9 @@ object Routes:
 
   def getReadRoute(logic: (read.Request) => IO[read.Response]): HttpRoutes[IO] =
     Http4sServerInterpreter[IO]().toRoutes(readEndpoint.serverLogicSuccess(logic))
+
+  def getReadStreamRoute(logic: (read.Request) => IO[Stream[IO, Byte]]): HttpRoutes[IO] =
+    Http4sServerInterpreter[IO]().toRoutes(readEndpointStream.serverLogicSuccess(logic))
 
   def getReadOneRoute(logic: (readOne.Request) => IO[readOne.Response]): HttpRoutes[IO] =
     Http4sServerInterpreter[IO]().toRoutes(readOneEndpoint.serverLogicSuccess(logic))
@@ -68,6 +75,13 @@ object Routes:
     .in(periodQuery).in(idsQuery)
     .out(jsonBody[read.Response])
 
+  private val readEndpointStream: PublicEndpoint[read.Request, StatusCode, Stream[IO, Byte], Fs2Streams[IO]] = baseEndpoint
+    .get
+    .in("stream")
+    .description("Get list of locations: all, particular ids or before or after or between dates")
+    .in(periodQuery).in(idsQuery)
+    .out(streamTextBody(Fs2Streams[IO])(CodecFormat.Json(), Option(StandardCharsets.UTF_8)))
+
   private val readOneEndpoint: PublicEndpoint[readOne.Request, StatusCode, readOne.Response, Any] = baseEndpoint
     .get
     .description("Get particular location given by id")
@@ -106,6 +120,7 @@ object Routes:
       createEndpoint,
       createOneEndpoint,
       readEndpoint,
+      readEndpointStream,
       readOneEndpoint,
       updateEndpoint,
       updateOneEndpoint,

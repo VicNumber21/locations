@@ -8,6 +8,10 @@ import org.http4s.server.Router
 
 import java.time.LocalDateTime
 
+import fs2.Stream
+import io.circe.syntax._
+import io.circe.generic.auto._
+
 import com.vportnov.locations.api.types.api._
 import com.vportnov.locations.api.types.structures._
 import com.vportnov.locations.api.Routes
@@ -27,6 +31,14 @@ object Service:
                       then ids.map(id => LocationResponse(s"$baseId-$id", 0, 0, created))
                       else List(location)
     IO(response)
+
+  private val readStreamLogic: (read.Request) => IO[Stream[IO, Byte]] = request =>
+    for {
+      list <- readLogic(request)
+      result = Stream.eval(list.pure[IO])
+        .map(_.asJson.noSpaces)
+      bytes = result.through(fs2.text.utf8.encode)
+    } yield bytes
   
   private val readOneLogic: (readOne.Request) => IO[readOne.Response] = (id) =>
     for {
@@ -47,5 +59,6 @@ object Service:
     Routes.getCreateRoute(createLogic) <+>
     Routes.getCreateOneRoute(createOneLogic) <+>
     Routes.getReadRoute(readLogic) <+>
+    Routes.getReadStreamRoute(readStreamLogic) <+>
     Routes.getReadOneRoute(readOneLogic) <+>
     Routes.swaggerUIRoutes

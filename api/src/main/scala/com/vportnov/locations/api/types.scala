@@ -144,7 +144,6 @@ object types:
     )
 
     type OptionalDateTime = Option[LocalDateTime]
-    type OptionalBoolean = Option[Boolean]
     final case class PeriodQuery(from: OptionalDateTime, to: OptionalDateTime)
 
     type IdsQuery = List[Id]
