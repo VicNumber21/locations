@@ -10,10 +10,35 @@ import sttp.tapir.Schema.annotations._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe._
 import io.circe.generic.auto._
-import java.time.Period
 
 
 object types:
+  object lib:
+    // TODO move to lib sub-project
+    type OptionalDateTime = Option[LocalDateTime]
+    final case class Period(from: OptionalDateTime, to: OptionalDateTime):
+      def isEmpty: Boolean = from.isEmpty && to.isEmpty
+
+    object Location:
+      type Id = String
+      type Ids = List[Id]
+      type Longitude = BigDecimal
+      type Latitude = BigDecimal
+
+      final case class WithCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime)
+      def apply(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime) =
+        WithCreatedField(id, longitude, latitude, created)
+
+      final case class WithOptionalCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: OptionalDateTime)
+      def apply(id: Id, longitude: Longitude, latitude: Latitude, created: OptionalDateTime) =
+        WithOptionalCreatedField(id, longitude, latitude, created)
+
+      final case class WithoutCreatedField(id: Id, longitude: Longitude, latitude: Latitude)
+      def apply(id: Id, longitude: Longitude, latitude: Latitude) =
+        WithoutCreatedField(id, longitude, latitude)
+
+      final case class Stats(date: LocalDateTime, count: Int)
+
   object api:
     object create:
       type Request = List[structures.LocationCreateRequest]
@@ -52,6 +77,7 @@ object types:
 
 
   object structures:
+    // TODO move to lib
     type Id = String
 
     @description(meta.request.create.description)
@@ -143,9 +169,19 @@ object types:
       created: LocalDateTime
     )
 
+    // TODO add descriptions
+    final case class LocationStats(
+      date: LocalDateTime,
+
+      count: Int
+    )
+
+    // TODO move to lib
     type OptionalDateTime = Option[LocalDateTime]
+    // TODO move to lib
     final case class PeriodQuery(from: OptionalDateTime, to: OptionalDateTime)
 
+    // TODO move to lib
     type IdsQuery = List[Id]
 
     object meta:

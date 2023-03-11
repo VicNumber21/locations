@@ -24,7 +24,6 @@ import doobie.implicits._
 import doobie.implicits.javasql._
 import doobie.postgres._
 import doobie.postgres.implicits._
-import doobie.postgres.pgisimplicits._
 import cats._
 import cats.implicits._
 import cats.effect._
