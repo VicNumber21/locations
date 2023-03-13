@@ -9,7 +9,6 @@ import com.vportnov.locations.api.types.lib._
 trait Storage[F[_]]:
   type LocationStream[F[_]] = Stream[F, Location.WithCreatedField]
   type LocationStatsStream[F[_]] = Stream[F, Location.Stats]
-  type CountStream[F[_]] = Stream[F, Int]
 
   def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F]
 
@@ -17,6 +16,6 @@ trait Storage[F[_]]:
 
   def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F]
 
-  def deleteLocations(ids: Location.Ids): CountStream[F]
+  def deleteLocations(ids: Location.Ids): F[Int]
   
   def locationStats(period: Period): LocationStatsStream[F]

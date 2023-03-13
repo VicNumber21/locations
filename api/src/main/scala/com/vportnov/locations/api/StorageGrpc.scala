@@ -32,11 +32,11 @@ final class StorageGrpc[F[_]: Async] extends Storage[F]:
   def updateLocation(location: Location.WithoutCreatedField): F[Location.WithCreatedField] = 
     updateLocations(List(location)).firstEntry
 
-  override def deleteLocations(ids: Location.Ids): CountStream[F] =
+  override def deleteLocations(ids: Location.Ids): F[Int] =
     db.deleteLocations(ids)
 
   def deleteLocation(id: Location.Id): F[Int] = 
-    deleteLocations(List(id)).firstEntry
+    deleteLocations(List(id))
   
   override def locationStats(period: Period): LocationStatsStream[F] =
     db.locationStats(period)

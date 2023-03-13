@@ -29,8 +29,13 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     ???
 
-  override def deleteLocations(ids: Location.Ids): CountStream[F] =
-    ???
+  override def deleteLocations(ids: Location.Ids): F[Int] =
+    if ids.isEmpty
+      then Sync[F].delay(0)
+      else
+        sql.delete.locations(ids)
+          .run
+          .transact(tx)
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     ???
@@ -76,10 +81,15 @@ object StorageDb:
           fr"INSERT INTO locations (location_id, location_longitude, location_latitude, location_created)" ++
           values(locations) ++
           fr"ON CONFLICT (location_id) DO NOTHING"
-        ) .update
+        )
+          .update
 
     object delete:
-      val all = sql"DELETE FROM locations"
-        .update
+      def locations(ids: Location.Ids): Update0 =
+        (
+          fr"DELETE FROM locations" ++
+          Fragments.whereAndOpt(select.byIds(ids))
+        )
+          .update
 
 
