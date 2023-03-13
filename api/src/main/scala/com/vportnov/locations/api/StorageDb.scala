@@ -15,7 +15,9 @@ import com.vportnov.locations.api.types.lib._
 final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
   import StorageDb._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
-    ???
+    sql.insert.locations(locations)
+      .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
+      .transact(tx)
 
   override def getLocations(period: Period, ids: Location.Ids): LocationStream[F] =
     sql.select.locations(period, ids) match
@@ -39,10 +41,9 @@ object StorageDb:
   //TODO test sql
   object sql:
     object select:
-      val base = sql"""
-          SELECT location_id, location_longitude, location_latitude, location_created
-          FROM locations
-        """
+      val base = 
+          fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
+          fr"FROM locations"
 
       def locations(period: Period, ids: Location.Ids): Option[Query0[Location.WithCreatedField]] =
         val query = if !period.isEmpty && !ids.isEmpty
@@ -61,13 +62,21 @@ object StorageDb:
         ids.toNel.map(nelIds => Fragments.in(fr"location_id", nelIds))
 
     object insert:
-      val withCreatedField = Update[Location.WithCreatedField](
-        "INSERT INTO locations (location_id, location_longitude, location_latitude, location_created) values (?, ?, ?, ?)"
-      )
+      def value(location: Location.WithOptionalCreatedField): Fragment = location match
+        case Location.WithOptionalCreatedField(id, longitude, latitude, Some(created)) =>
+          sql"($id, $longitude, $latitude, $created)"
+        case Location.WithOptionalCreatedField(id, longitude, latitude, None) =>
+          sql"($id, $longitude, $latitude, CURRENT_TIMESTAMP)"
+      
+      def values(locations: List[Location.WithOptionalCreatedField]): Fragment =
+        locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
 
-      val withoutCreatedField = Update[Location.WithoutCreatedField](
-        "INSERT INTO locations (location_id, location_longitude, location_latitude) values (?, ?, ?)"
-      )
+      def locations(locations: List[Location.WithOptionalCreatedField]): Update0 =
+        (
+          fr"INSERT INTO locations (location_id, location_longitude, location_latitude, location_created)" ++
+          values(locations) ++
+          fr"ON CONFLICT (location_id) DO NOTHING"
+        ) .update
 
     object delete:
       val all = sql"DELETE FROM locations"
