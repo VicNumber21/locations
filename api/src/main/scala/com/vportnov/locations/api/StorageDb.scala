@@ -27,7 +27,9 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
         fs2.Stream.raiseError(new RuntimeException) // TODO add better error
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
-    ???
+    sql.update.locations(locations)
+      .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
+      .transact(tx)
 
   override def deleteLocations(ids: Location.Ids): F[Int] =
     if ids.isEmpty
@@ -81,6 +83,25 @@ object StorageDb:
           fr"INSERT INTO locations (location_id, location_longitude, location_latitude, location_created)" ++
           values(locations) ++
           fr"ON CONFLICT (location_id) DO NOTHING"
+        )
+          .update
+
+    object update:
+      def value(location: Location.WithoutCreatedField): Fragment =
+        val Location.WithoutCreatedField(id, longitude, latitude) = location
+        sql"($id, $longitude, $latitude)"
+      
+      def values(locations: List[Location.WithoutCreatedField]): Fragment =
+        locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
+
+      def locations(locations: List[Location.WithoutCreatedField]): Update0 =
+        (
+          fr"UPDATE locations AS l" ++
+          fr"SET location_longitude = location.longitude, location_latitude = location.latitude" ++
+          fr"FROM (" ++
+          update.values(locations) ++
+          fr") AS location (id, longitude, latitude)" ++
+          fr"WHERE l.location_id = location.id"
         )
           .update
 
