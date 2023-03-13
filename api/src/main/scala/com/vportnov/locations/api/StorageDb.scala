@@ -41,15 +41,15 @@ object StorageDb:
   //TODO test sql
   object sql:
     object select:
-      val base = 
-          fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
-          fr"FROM locations"
-
       def locations(period: Period, ids: Location.Ids): Option[Query0[Location.WithCreatedField]] =
         val query = if !period.isEmpty && !ids.isEmpty
           then None
         else
-          Some(select.base ++ Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*))
+          Some(
+            fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
+            fr"FROM locations" ++
+            Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*)
+          )
         
         query.map(q => q.query[Location.WithCreatedField])
 
