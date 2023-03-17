@@ -111,12 +111,12 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       unpacked <- storageResponse.attempt
     } yield unpacked.joinRight.map(mapper).left.map(errorMapper)
 
-  private def deleteSuccess(count: Int): StatusCode = count match
-    case 0 => StatusCode.Ok
-    case n if n > 0 => StatusCode.NoContent
+  private def deleteSuccess(count: Int): LocationsRoutes.ResponseCode = count match
+    case 0 => LocationsRoutes.ResponseCode.Ok
+    case n if n > 0 => LocationsRoutes.ResponseCode.NoContent
     case strange =>
       logger.error(s"This should never come -> ${strange.toString}")
-      StatusCode.InternalServerError
+      LocationsRoutes.ResponseCode.InternalServerError
   
   private def notFoundError(error: Throwable) = error match
     case _ : java.util.NoSuchElementException => StatusCode.NotFound
@@ -206,13 +206,13 @@ object LocationsRoutes:
     .in(jsonBody[LocationUpdateOneRequest])
     .out(jsonBody[LocationResponse])
 
-  val deleteEndpoint: PublicEndpoint[Location.Ids, StatusCode, StatusCode, Any] = baseEndpoint
+  val deleteEndpoint: PublicEndpoint[Location.Ids, StatusCode, ResponseCode, Any] = baseEndpoint
     .delete
     .description("Delete list of given locations in batch")
     .in(idsQuery)
     .out(deleteSuccessStatusCodes)
 
-  val deleteOneEndpoint: PublicEndpoint[Location.Id, StatusCode, StatusCode, Any] = baseEndpoint
+  val deleteOneEndpoint: PublicEndpoint[Location.Id, StatusCode, ResponseCode, Any] = baseEndpoint
     .delete
     .description("Delete particular location given by id")
     .in(idPath)
@@ -227,10 +227,25 @@ object LocationsRoutes:
     .out(fs2StreamJsonBodyUTF8[F, List[LocationStats]])
   
   // TODO implement success / error status codes like this
+  // TODO it does not work as expected, it does not show code returned from serverLogic
+  // https://tapir.softwaremill.com/en/latest/endpoint/oneof.html?highlight=oneOf#oneof-outputs
+  // IT DOES NOT WORK VIA ENUM, but works as below
+  // Most probably it makes sense to implement subtypes of ServerError (ServerResponse better?) and pass them as JSON on
+  // particular error as well as map the class to needed status code
+  // It also looks like LocationResponse must be derived from the same thing to be able to map 200 on it
+  sealed trait ResponseCode
+  object ResponseCode:
+    case object Ok extends ResponseCode
+    case object NoContent extends ResponseCode
+    case object InternalServerError extends ResponseCode
+
+  val test = baseEndpoint.out(deleteSuccessStatusCodes)
+
   def deleteSuccessStatusCodes =
-    oneOf[StatusCode](
-      oneOfVariant(statusCode(StatusCode.Ok).and(emptyOutputAs(StatusCode.Ok).description("Not found so already removed"))),
-      oneOfVariant(statusCode(StatusCode.NoContent).and(emptyOutputAs(StatusCode.NoContent).description("Deleted successfuly")))
+    oneOf[ResponseCode](
+      oneOfVariant(statusCode(StatusCode.NoContent).and(emptyOutputAs(ResponseCode.NoContent).description("Deleted successfuly"))),
+      oneOfVariant(statusCode(StatusCode.Ok).and(emptyOutputAs(ResponseCode.Ok).description("Not found so already removed"))),
+      oneOfDefaultVariant(statusCode(StatusCode.InternalServerError).and(emptyOutputAs(ResponseCode.InternalServerError).description("Generic server error")))
     )
   
   val endpoints: List[AnyEndpoint] =
