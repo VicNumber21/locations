@@ -42,44 +42,6 @@ object types:
       // TODO check if it is ok to use LocalDate here?
       final case class Stats(date: LocalDate, count: Int)
 
-  object api:
-    //TODO Remove all request responses?
-    object create:
-      type Request = List[structures.LocationCreateRequest]
-      type Response = List[structures.LocationResponse]
-
-    object createOne:
-      type RequestBody = structures.LocationCreateOneRequest
-      type Request = (structures.Id, RequestBody)
-      type Response = structures.LocationResponse
-    
-    
-    object read:
-      type Request = (structures.PeriodQuery, structures.IdsQuery)
-      type Response = List[structures.LocationResponse]
-
-    object readOne:
-      type Request = structures.Id
-      type Response = structures.LocationResponse
-
-    object update:
-      type Request = List[structures.LocationUpdateRequest]
-      type Response = List[structures.LocationResponse]
-
-    object updateOne:
-      type RequestBody = structures.LocationUpdateOneRequest
-      type Request = (structures.Id, RequestBody)
-      type Response = structures.LocationResponse
-    
-    object delete:
-      type Request = structures.IdsQuery
-      type Response = Unit
-
-    object deleteOne:
-      type Request = structures.Id
-      type Response = Unit
-
-
   object structures:
     // TODO move to lib
     type Id = String
