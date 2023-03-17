@@ -24,7 +24,7 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
       case Some(query) =>
         query.stream.transact(tx)
       case None =>
-        fs2.Stream.raiseError(new RuntimeException) // TODO add better error
+        fs2.Stream.raiseError(new RuntimeException("Incorrect query parameters")) // TODO add better error
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     sql.update.locations(locations)
@@ -40,8 +40,7 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
           .transact(tx)
 
   override def locationStats(period: Period): LocationStatsStream[F] =
-    ???
-  
+    sql.select.stats(period).stream.transact(tx)
   
 
 object StorageDb:
@@ -59,6 +58,18 @@ object StorageDb:
           )
         
         query.map(q => q.query[Location.WithCreatedField])
+      
+      def stats(period: Period): Query0[Location.Stats] =
+        (
+          fr"SELECT" ++
+            fr"CAST(location_created AS DATE) AS created_date," ++
+            fr"COUNT(location_created) AS created_locations" ++
+          fr"FROM locations" ++
+          Fragments.whereAndOpt(byPeriod(period):_*) ++
+          fr"GROUP BY created_date" ++
+          fr"ORDER BY created_date"
+        )
+          .query[Location.Stats]
 
       def byPeriod(period: Period): List[Option[Fragment]] = 
         val from = period.from.map(from => fr"location_created >= CAST($from AS DATE)")

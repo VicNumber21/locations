@@ -3,6 +3,7 @@ package com.vportnov.locations.api
 import scala.util.matching.Regex
 import scala.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.LocalDate
 
 import sttp.tapir._
 import sttp.tapir.Schema
@@ -37,7 +38,8 @@ object types:
       def apply(id: Id, longitude: Longitude, latitude: Latitude) =
         WithoutCreatedField(id, longitude, latitude)
 
-      final case class Stats(date: LocalDateTime, count: Int)
+      // TODO check if it is ok to use LocalDate here?
+      final case class Stats(date: LocalDate, count: Int)
 
   object api:
     object create:

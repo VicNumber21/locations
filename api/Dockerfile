@@ -1,7 +1,7 @@
-# FROM eclipse-temurin:11 as jre-build
 FROM eclipse-temurin:11-jdk-alpine as jre-build
+# java.sql, java.security.sasl should be removed from API; it will be required in svc image
 RUN $JAVA_HOME/bin/jlink \
-  --add-modules java.base,jdk.unsupported,java.management \
+  --add-modules java.base,jdk.unsupported,java.management,java.sql,java.security.sasl \
   --strip-debug \
   --no-man-pages \
   --no-header-files \

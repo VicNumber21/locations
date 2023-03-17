@@ -3,6 +3,8 @@ services:
     image: vportnov/locations-api
     ports:
       - "${API_PORT}:8080"
+    networks:
+      - db
 
   db:
     image: vportnov/locations-db
@@ -14,6 +16,8 @@ services:
       - ${DB_PATH}:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:5432"
+    networks:
+      - db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN} -d ${DB_NAME}"]
       interval: 10s
@@ -26,3 +30,6 @@ services:
         limits:
           cpus: '1'
           memory: 4G
+
+networks:
+  db:
