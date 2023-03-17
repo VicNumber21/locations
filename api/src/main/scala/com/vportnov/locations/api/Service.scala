@@ -54,6 +54,15 @@ object Service:
     for {
       list <- createLogic(List(LocationCreateRequest(id, request.longitude, request.latitude, request.created)))
     } yield list.head
+  
+  // TODO remove db from here
+  import doobie._
+  import cats.effect.IO
+  val tx = Transactor.fromDriverManager[IO]("org.postgresql.Driver", "jdbc:postgresql://db:5432/locations", "locator", "locator")
+  val db = new StorageDb(tx)
+
+  private val storage = new StorageGrpc[IO](db)
+  private val locationsRoutes = new LocationsRoutes(storage)
 
   private val routes: HttpRoutes[IO] = 
     Routes.getCreateRoute(createLogic) <+>
@@ -61,4 +70,5 @@ object Service:
     Routes.getReadRoute(readLogic) <+>
     Routes.getReadStreamRoute(readStreamLogic) <+>
     Routes.getReadOneRoute(readOneLogic) <+>
-    Routes.swaggerUIRoutes
+    locationsRoutes.routes <+>
+    Routes.swaggerUIRoutes(LocationsRoutes.endpoints)

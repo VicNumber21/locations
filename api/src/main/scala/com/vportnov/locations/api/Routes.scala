@@ -34,8 +34,8 @@ object Routes:
   def getReadOneRoute(logic: (readOne.Request) => IO[readOne.Response]): HttpRoutes[IO] =
     Http4sServerInterpreter[IO]().toRoutes(readOneEndpoint.serverLogicSuccess(logic))
 
-  def swaggerUIRoutes: HttpRoutes[IO] =
-    Http4sServerInterpreter[IO]().toRoutes(SwaggerInterpreter().fromEndpoints[IO](allEnpoints, "Locations Service", "1.0.0"))
+  def swaggerUIRoutes(extra: List[AnyEndpoint]): HttpRoutes[IO] =
+    Http4sServerInterpreter[IO]().toRoutes(SwaggerInterpreter().fromEndpoints[IO](endpoints ++ extra, "Locations Service", "1.0.0"))
 
   private val periodQuery: EndpointInput[PeriodQuery] =
     query[OptionalDateTime]("from")
@@ -51,7 +51,7 @@ object Routes:
       .validate(meta.id.validator)
 
   private val baseEndpoint = endpoint
-    .in("api" / "v1.0" / "locations")
+    .in("api" / "v1.0" / "old" / "locations")
     .errorOut(statusCode)
 
   private val createEndpoint: PublicEndpoint[create.Request, StatusCode, create.Response, Any] = baseEndpoint
@@ -115,7 +115,7 @@ object Routes:
 
 
   
-  private val allEnpoints =
+  val endpoints =
     List(
       createEndpoint,
       createOneEndpoint,

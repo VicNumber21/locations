@@ -24,20 +24,21 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
       case Some(query) =>
         query.stream.transact(tx)
       case None =>
-        fs2.Stream.raiseError(new RuntimeException("Incorrect query parameters")) // TODO add better error
+        fs2.Stream.raiseError(new IllegalArgumentException("Should not request both filters by ids and by dates"))
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     sql.update.locations(locations)
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
       .transact(tx)
 
-  override def deleteLocations(ids: Location.Ids): F[Int] =
+  def deleteLocations(ids: Location.Ids): F[Either[Throwable, Int]] =
     if ids.isEmpty
-      then Sync[F].delay(0)
+      then Sync[F].delay(Left(new IllegalArgumentException("Ids list must not be empty")))
       else
-        sql.delete.locations(ids)
-          .run
-          .transact(tx)
+          sql.delete.locations(ids)
+            .run
+            .transact(tx)
+            .map(Right(_))
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)

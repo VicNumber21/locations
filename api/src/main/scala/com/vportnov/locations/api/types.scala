@@ -26,6 +26,7 @@ object types:
       type Longitude = BigDecimal
       type Latitude = BigDecimal
 
+      // TODO it could be better to use ZondeDateTime in UTC
       final case class WithCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime)
       def apply(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime) =
         WithCreatedField(id, longitude, latitude, created)
@@ -42,6 +43,7 @@ object types:
       final case class Stats(date: LocalDate, count: Int)
 
   object api:
+    //TODO Remove all request responses?
     object create:
       type Request = List[structures.LocationCreateRequest]
       type Response = List[structures.LocationResponse]
@@ -102,7 +104,8 @@ object types:
       @description(meta.created.optional.description)
       @encodedExample(meta.created.optional.example)
       created: Option[LocalDateTime] = None
-    )
+    ):
+      def toLocation = lib.Location.WithOptionalCreatedField(id, longitude, latitude, created)
 
     final case class LocationCreateOneRequest(
       @description(meta.longitude.description)
@@ -118,7 +121,8 @@ object types:
       @description(meta.created.optional.description)
       @encodedExample(meta.created.optional.example)
       created: Option[LocalDateTime] = None
-    )
+    ):
+      def toLocation(id: Id) = lib.Location.WithOptionalCreatedField(id, longitude, latitude, created)
 
     final case class LocationUpdateRequest(
       @description(meta.id.description)
@@ -135,7 +139,8 @@ object types:
       @encodedExample(meta.latitude.example)
       @validate(meta.latitude.validator)
       latitude: BigDecimal,
-    )
+    ):
+      def toLocation = lib.Location.WithoutCreatedField(id, longitude, latitude)
 
     final case class LocationUpdateOneRequest(
       @description(meta.longitude.description)
@@ -147,7 +152,8 @@ object types:
       @encodedExample(meta.latitude.example)
       @validate(meta.latitude.validator)
       latitude: BigDecimal,
-    )
+    ):
+      def toLocation(id: Id) = lib.Location.WithoutCreatedField(id, longitude, latitude)
 
     @description(meta.response.description)
     final case class LocationResponse(
@@ -171,6 +177,10 @@ object types:
       created: LocalDateTime
     )
 
+    object LocationResponse:
+      def from(l: lib.Location.WithCreatedField) = LocationResponse(l.id, l.longitude, l.latitude, l.created)
+
+
     // TODO add descriptions
     final case class LocationStats(
       date: LocalDateTime,
@@ -185,6 +195,13 @@ object types:
 
     // TODO move to lib
     type IdsQuery = List[Id]
+
+    // TODO improve error response
+    case class ServerError(code: Int, message: String)
+
+    object ServerError:
+      def apply(message: String): ServerError = ServerError(500, message)
+
 
     object meta:
       object request:
