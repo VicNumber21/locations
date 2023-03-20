@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.vportnov.locations.grpc;
+
+import "google/protobuf/timestamp.proto";
+
+
+service Locations {
+  rpc locationStats (Period) returns (stream LocationStats) {}
+}
+
+message Period {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2; 
+}
+
+message LocationStats {
+  google.protobuf.Timestamp date = 1;
+  uint32 count = 2;
+}

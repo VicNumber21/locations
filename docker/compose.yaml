@@ -4,7 +4,16 @@ services:
     ports:
       - "${API_PORT}:8080"
     networks:
+      - db # TODO move to svc service
+      - svc
+
+  svc:
+    image: vportnov/locations-svc
+    ports:
+      - "9090:9090" # TODO add env var for port
+    networks:
       - db
+      - svc
 
   db:
     image: vportnov/locations-db
@@ -33,3 +42,4 @@ services:
 
 networks:
   db:
+  svc:

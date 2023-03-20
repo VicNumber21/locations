@@ -9,9 +9,9 @@ import com.vportnov.locations.api.Service
 
 object App extends IOApp:
   def run(args: List[String]): IO[ExitCode] =
-    Server.use(_ => IO.never.as(ExitCode.Success))
+    server.use(_ => IO.never.as(ExitCode.Success))
 
-  private val Server = EmberServerBuilder
+  private val server = EmberServerBuilder
     .default[IO]
     .withHost(ipv4"0.0.0.0")
     .withPort(port"8080")
