@@ -10,5 +10,8 @@ import com.vportnov.locations.model
 
 
 final class GrpcService[F[_]](storage: model.Storage[F]) extends LocationsFs2Grpc[F, Metadata]:
+  def getLocations(request: grpc.GetRequest, ctx: Metadata): Stream[F, grpc.Location] =
+    storage.getLocations(request.getPeriod.toModel, request.ids.toList).map(_.toMessage)
+
   override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
     storage.locationStats(period.toModel).map(_.toMessage)

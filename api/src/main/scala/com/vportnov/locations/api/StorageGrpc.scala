@@ -18,7 +18,11 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
     db.createLocations(locations)
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
-    db.getLocations(period, ids)
+    for {
+      grpcApi <- Stream.resource(grpcClient)
+      request = grpc.GetRequest().withPeriod(period.toMessage).withIds(ids)
+      location <- grpcApi.getLocations(request, new Metadata)
+    }yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
     db.updateLocations(locations)
@@ -27,11 +31,9 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
     db.deleteLocations(ids)
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
-    // db.locationStats(period)
-    import java.time.ZoneOffset
     for {
       grpcApi <- Stream.resource(grpcClient)
-      stats <- grpcApi.locationStats(new grpc.Period(), new Metadata())
+      stats <- grpcApi.locationStats(new grpc.Period(), new Metadata)
     } yield stats.toModel
 
   val managedChannelResource: Resource[F, ManagedChannel] =

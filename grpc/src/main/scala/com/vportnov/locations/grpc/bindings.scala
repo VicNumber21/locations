@@ -1,11 +1,13 @@
 package com.vportnov.locations.grpc.bindings
 
-import com.vportnov.locations.model
-import com.vportnov.locations.grpc
-
 import com.google.protobuf.timestamp.Timestamp
+import com.google.protobuf.ByteString
+
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+
+import com.vportnov.locations.model
+import com.vportnov.locations.grpc
 
 
 
@@ -43,3 +45,25 @@ extension (stats: model.Location.Stats)
 extension (stats: grpc.LocationStats)
   def toModel: model.Location.Stats =
     model.Location.Stats(stats.getDate.toModel.toLocalDate, stats.count)
+
+extension (decimal: BigDecimal)
+  def toMessage: grpc.BigDecimal =
+    grpc.BigDecimal()
+      .withUnscaled(ByteString.copyFrom(decimal.underlying.unscaledValue.toByteArray))
+      .withScale(decimal.scale)
+
+extension (decimal: grpc.BigDecimal)
+  def toModel: BigDecimal =
+    BigDecimal(BigInt(decimal.unscaled.toByteArray), decimal.scale)
+
+extension (location: model.Location.WithCreatedField)
+  def toMessage: grpc.Location =
+    grpc.Location()
+      .withId(location.id)
+      .withLongitude(location.longitude.toMessage)
+      .withLatitude(location.latitude.toMessage)
+      .withCreated(location.created.toMessage)
+
+extension (l: grpc.Location)
+  def toLocationWithCreatedField: model.Location.WithCreatedField =
+    model.Location.WithCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.getCreated.toModel)
