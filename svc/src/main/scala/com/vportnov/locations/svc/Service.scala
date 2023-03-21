@@ -1,7 +1,8 @@
 package com.vportnov.locations.svc
 
 import cats.effect._
-import cats.syntax.all._
+
+import doobie._
 
 import io.grpc._
 
@@ -20,7 +21,10 @@ object Service:
 
 
 final class ServiceImpl[F[_]: Async] extends LocationsFs2Grpc[F, Metadata]:
-  override def locationStats(request: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
-    import java.time.LocalDateTime
-    val stats = model.Location.Stats(LocalDateTime.now.toLocalDate, 15)
-    Stream(stats.toMessage)
+  override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
+    db.locationStats(period.toModel).map(_.toMessage)
+
+  private val tx = Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql://db:5432/locations", "locator", "locator")
+  private val db = new StorageDb(tx)
+
+
