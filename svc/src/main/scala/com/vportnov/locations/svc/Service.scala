@@ -8,7 +8,9 @@ import io.grpc._
 import fs2.Stream
 
 import com.vportnov.locations.grpc.LocationsFs2Grpc
-import com.vportnov.locations.grpc._
+import com.vportnov.locations.grpc
+import com.vportnov.locations.grpc.bindings._
+import com.vportnov.locations.model
 
 object Service:
   def use[F[_]: Async, T](server: ServerServiceDefinition => F[T]) =
@@ -18,8 +20,7 @@ object Service:
 
 
 final class ServiceImpl[F[_]: Async] extends LocationsFs2Grpc[F, Metadata]:
-  override def locationStats(request: com.vportnov.locations.grpc.Period, ctx: Metadata): Stream[F, LocationStats] =
-    import com.google.protobuf.timestamp.Timestamp
-    import java.time._
-    val now = LocalDateTime.now().atZone(ZoneOffset.UTC)
-    Stream(LocationStats(Some(Timestamp(now.toEpochSecond, now.getNano)), 12))
+  override def locationStats(request: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
+    import java.time.LocalDateTime
+    val stats = model.Location.Stats(LocalDateTime.now.toLocalDate, 15)
+    Stream(stats.toMessage)

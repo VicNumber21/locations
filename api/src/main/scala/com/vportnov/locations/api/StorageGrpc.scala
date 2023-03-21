@@ -10,6 +10,7 @@ import io.grpc._
 import com.vportnov.locations.model
 import com.vportnov.locations.grpc.LocationsFs2Grpc
 import com.vportnov.locations.grpc
+import com.vportnov.locations.grpc.bindings._
 
 // TODO remove StorageDb during rework to eal gRpc
 final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[F]:
@@ -31,8 +32,7 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
     for {
       grpcApi <- Stream.resource(grpcClient)
       stats <- grpcApi.locationStats(new grpc.Period(), new Metadata())
-      date = java.time.LocalDateTime.ofEpochSecond(stats.date.get.seconds, stats.date.get.nanos, ZoneOffset.UTC).toLocalDate()
-    } yield model.Location.Stats(date, stats.count)
+    } yield stats.toModel
 
   val managedChannelResource: Resource[F, ManagedChannel] =
     NettyChannelBuilder
