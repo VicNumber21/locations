@@ -1,9 +1,8 @@
 package com.vportnov.locations.svc
 
 import cats.effect._
-import com.comcast.ip4s._
 
-import com.vportnov.locations.svc.Service
+import com.vportnov.locations.svc.GrpcServer
 
 import io.grpc.netty.NettyServerBuilder
 import io.grpc._
@@ -12,9 +11,9 @@ import fs2.grpc.syntax.all._
 
 object App extends IOApp:
   def run(args: List[String]): IO[ExitCode] =
-    Service.use(server)
+    GrpcServer.run(nettyServer)
 
-  private def server(service: ServerServiceDefinition): IO[ExitCode] = NettyServerBuilder
+  private def nettyServer(service: ServerServiceDefinition): IO[ExitCode] = NettyServerBuilder
     .forPort(9090)
     .addService(service)
     .resource[IO]
