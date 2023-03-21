@@ -3,6 +3,16 @@ import sbt.Keys._
 
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 
+lazy val model =
+  (project in file("./model"))
+    .settings(settings.common)
+    .settings(
+      libraryDependencies ++= Seq(
+        libs.catsEffect,
+
+        libs.fs2Core
+      )
+    )
 
 lazy val grpc =
   (project in file("./grpc"))
@@ -16,6 +26,7 @@ lazy val grpc =
       )
     )
     .enablePlugins(Fs2Grpc)
+    .dependsOn(model)
 
 lazy val api =
   (project in file("./api"))
@@ -66,6 +77,7 @@ lazy val api =
     )
     .enablePlugins(DockerPlugin)
     .enablePlugins(PackPlugin)
+    .dependsOn(model)
     .dependsOn(grpc)
 
 lazy val svc =
@@ -109,6 +121,7 @@ lazy val svc =
     )
     .enablePlugins(DockerPlugin)
     .enablePlugins(PackPlugin)
+    .dependsOn(model)
     .dependsOn(grpc)
 
 lazy val db =
@@ -198,7 +211,9 @@ lazy val settings =
 lazy val libs =
   new {
     object version {
+      val cats = "3.4.8"
       val doobie = "1.0.0-RC2"
+      val fs2 = "3.6.1"
       val grpcNetty = "1.53.0"
       val http4s = "0.23.18"
       val scalacheck = "3.2.15.0"
@@ -209,9 +224,13 @@ lazy val libs =
       val testcontainers = "0.40.12"
     }
 
+    val catsEffect = "org.typelevel" %% "cats-effect" % version.cats
+
     val doobieCore = "org.tpolecat" %% "doobie-core" % version.doobie
     val doobiePostgres = "org.tpolecat" %% "doobie-postgres"  % version.doobie
     val doobieScalatest = "org.tpolecat" %% "doobie-scalatest" % version.doobie
+
+    val fs2Core = "co.fs2" %% "fs2-core" % version.fs2
 
     val grpcNetty = "io.grpc" % "grpc-netty" % version.grpcNetty
 

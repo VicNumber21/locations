@@ -9,7 +9,7 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
 
-import com.vportnov.locations.api.types.lib._
+import com.vportnov.locations.model._
 
 
 final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:

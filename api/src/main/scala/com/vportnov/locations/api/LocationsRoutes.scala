@@ -22,9 +22,8 @@ import java.nio.charset.StandardCharsets
 
 import org.slf4j.LoggerFactory
 
-import com.vportnov.locations.api.types.lib._
-// import com.vportnov.locations.api.types.api._
-import com.vportnov.locations.api.types.structures._
+import com.vportnov.locations.model._
+import com.vportnov.locations.api.types._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
@@ -154,11 +153,11 @@ object LocationsRoutes:
     .mapTo[Period]
 
   val idsQuery: EndpointInput[Location.Ids] =
-    query[IdsQuery]("id")
+    query[Location.Ids]("id")
       .validateIterable(meta.id.validator)
   
   val idPath: EndpointInput[Location.Id] =
-    path[Id]("id")
+    path[Location.Id]("id")
       .validate(meta.id.validator)
 
   val baseEndpoint = endpoint
