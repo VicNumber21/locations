@@ -71,6 +71,13 @@ extension (location: model.Location.WithOptionalCreatedField)
       .withLongitude(location.longitude.toMessage)
       .withLatitude(location.latitude.toMessage)
 
+extension (location: model.Location.WithoutCreatedField)
+  def toMessage: grpc.Location =
+    grpc.Location()
+      .withId(location.id)
+      .withLongitude(location.longitude.toMessage)
+      .withLatitude(location.latitude.toMessage)
+
 extension (l: grpc.Location)
   def toLocationWithCreatedField: model.Location.WithCreatedField =
     model.Location.WithCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.getCreated.toModel)
@@ -78,10 +85,20 @@ extension (l: grpc.Location)
   def toLocationWithOptionalCreatedField: model.Location.WithOptionalCreatedField =
     model.Location.WithOptionalCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.created.toModel)
 
-extension (locations: List[model.Location.WithOptionalCreatedField])
-  def toMessage: grpc.Locations =
-    grpc.Locations(locations.map(_.toMessage))
+  def toLocationWithoutCreatedField: model.Location.WithoutCreatedField =
+    model.Location.WithoutCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel)
+
+extension[T <: model.Location.Base] (locations: List[T])
+  def toMessage: grpc.Locations = 
+    grpc.Locations(locations.map {
+      case l: model.Location.WithCreatedField => l.toMessage
+      case l: model.Location.WithOptionalCreatedField => l.toMessage
+      case l: model.Location.WithoutCreatedField => l.toMessage
+    })
 
 extension (locations: grpc.Locations)
   def toLocationsWithOptionalCreatedField: List[model.Location.WithOptionalCreatedField] =
     locations.list.toList.map(_.toLocationWithOptionalCreatedField)
+
+  def toLocationsWithoutCreatedField: List[model.Location.WithoutCreatedField] =
+    locations.list.toList.map(_.toLocationWithoutCreatedField)

@@ -28,7 +28,10 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
     } yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
-    db.updateLocations(locations)
+    for {
+      grpcApi <- Stream.resource(grpcClient)
+      location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
+    } yield location.toLocationWithCreatedField
 
   override def deleteLocations(ids: model.Location.Ids): F[Either[Throwable, Int]] =
     db.deleteLocations(ids)

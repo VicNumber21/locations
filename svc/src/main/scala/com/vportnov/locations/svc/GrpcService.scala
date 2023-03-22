@@ -16,5 +16,8 @@ final class GrpcService[F[_]](storage: model.Storage[F]) extends LocationService
   def getLocations(query: grpc.Query, ctx: Metadata): Stream[F, grpc.Location] =
     storage.getLocations(query.getPeriod.toModel, query.ids.toList).map(_.toMessage)
 
+  def updateLocations(locations: grpc.Locations, ctx: Metadata): Stream[F, grpc.Location] =
+    storage.updateLocations(locations.toLocationsWithoutCreatedField).map(_.toMessage)
+
   override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
     storage.locationStats(period.toModel).map(_.toMessage)

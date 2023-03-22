@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 service LocationService {
   rpc createLocations (Locations) returns (stream Location) {}
   rpc getLocations (Query) returns (stream Location) {}
+  rpc updateLocations (Locations) returns (stream Location) {}
   rpc locationStats (Period) returns (stream LocationStats) {}
 }
 

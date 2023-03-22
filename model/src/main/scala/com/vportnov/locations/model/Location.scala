@@ -10,15 +10,17 @@ object Location:
   type Longitude = BigDecimal
   type Latitude = BigDecimal
 
-  final case class WithCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime)
+  trait Base
+
+  final case class WithCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime) extends Base
   def apply(id: Id, longitude: Longitude, latitude: Latitude, created: LocalDateTime) =
     WithCreatedField(id, longitude, latitude, created)
 
-  final case class WithOptionalCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: OptionalDateTime)
+  final case class WithOptionalCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: OptionalDateTime) extends Base
   def apply(id: Id, longitude: Longitude, latitude: Latitude, created: OptionalDateTime) =
     WithOptionalCreatedField(id, longitude, latitude, created)
 
-  final case class WithoutCreatedField(id: Id, longitude: Longitude, latitude: Latitude)
+  final case class WithoutCreatedField(id: Id, longitude: Longitude, latitude: Latitude) extends Base
   def apply(id: Id, longitude: Longitude, latitude: Latitude) =
     WithoutCreatedField(id, longitude, latitude)
 
