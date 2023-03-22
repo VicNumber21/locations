@@ -39,6 +39,8 @@ lazy val api =
           libs.http4sDsl,
           libs.http4sEmberServer,
 
+          libs.pureConfig,
+
           libs.tapitCore,
           libs.tapirJsonCirce,
           libs.tapirHttp4sServer,
@@ -213,6 +215,7 @@ lazy val libs =
       val fs2 = "3.6.1"
       val grpcNetty = "1.53.0"
       val http4s = "0.23.18"
+      val pureConfig = "0.17.2"
       val scalacheck = "3.2.15.0"
       val scalatest = "3.2.15"
       val scalapbRuntime = "0.11.13"
@@ -234,6 +237,8 @@ lazy val libs =
     val http4sDsl = "org.http4s" %% "http4s-dsl" % version.http4s
     val http4sCirce = "org.http4s" %% "http4s-circe" % version.http4s
     val http4sEmberServer = "org.http4s" %% "http4s-ember-server" % version.http4s
+
+    val pureConfig = "com.github.pureconfig" %% "pureconfig-core" % version.pureConfig
 
     val scalacheck = "org.scalatestplus" %% "scalacheck-1-17" % version.scalacheck
     val scalastick = "org.scalactic" %% "scalactic" % version.scalatest

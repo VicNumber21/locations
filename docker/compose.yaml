@@ -1,8 +1,10 @@
 services:
   api:
     image: vportnov/locations-api
+    environment:
+      API_PORT: "${API_PORT_INT}"
     ports:
-      - "${API_PORT}:8080"
+      - "${API_PORT}:${API_PORT_INT}"
     networks:
       - svc
 

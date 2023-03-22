@@ -15,5 +15,4 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 COPY --from=jre-build /javaruntime $JAVA_HOME
 
 COPY target/lib/* /opt/app/lib/
-EXPOSE 8080
 ENTRYPOINT ["java", "-cp", "/opt/app/lib/*", "com.vportnov.locations.api.App"]
