@@ -34,9 +34,6 @@ lazy val api =
     .settings(
       libraryDependencies ++=
         Seq(
-          libs.doobieCore,
-          libs.doobiePostgres,
-
           libs.grpcNetty,
 
           libs.http4sDsl,

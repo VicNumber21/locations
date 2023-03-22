@@ -16,13 +16,7 @@ import com.vportnov.locations.api.StorageGrpc
 object Service:
   def app: HttpApp[IO] = Router("/" -> (routes)).orNotFound
 
-  // TODO remove db from here
-  import doobie._
-  import cats.effect.IO
-  val tx = Transactor.fromDriverManager[IO]("org.postgresql.Driver", "jdbc:postgresql://db:5432/locations", "locator", "locator")
-  val db = new StorageDb(tx)
-
-  private val storage = new StorageGrpc[IO](db)
+  private val storage = new StorageGrpc[IO]
   private val locationsRoutes = new LocationsRoutes(storage)
   private val swaggerRoutes: HttpRoutes[IO] =
     Http4sServerInterpreter[IO]().toRoutes(SwaggerInterpreter().fromEndpoints[IO](LocationsRoutes.endpoints, "Locations Service", "1.0.0"))

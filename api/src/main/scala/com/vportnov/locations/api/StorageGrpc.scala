@@ -1,21 +1,19 @@
 package com.vportnov.locations.api
 
-import cats.effect._
-// TODO check that it should be here
+import cats.effect.{ Async, Resource }
 import io.grpc.netty.NettyChannelBuilder
 import fs2.grpc.syntax.all._
 import fs2.Stream
 import io.grpc._
 
 import com.vportnov.locations.model
-import com.vportnov.locations.model.StreamExtOps._
+import com.vportnov.locations.model.StreamExtOps._ // TODO required if deleteLocations is kept using stream as transport
 import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
 
 
-// TODO remove StorageDb during rework to eal gRpc
-final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[F]:
+final class StorageGrpc[F[_]: Async] extends model.StorageExt[F]:
   override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] =
     for {
       grpcApi <- Stream.resource(grpcClient)
@@ -50,12 +48,12 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
       stats <- grpcApi.locationStats(new grpc.Period(), new Metadata)
     } yield stats.toModel
 
-  val managedChannelResource: Resource[F, ManagedChannel] =
+  private val managedChannelResource: Resource[F, ManagedChannel] =
     NettyChannelBuilder
       .forAddress("svc", 9090)
       .usePlaintext()
       .resource[F]
   
-  val grpcClient = managedChannelResource
+  private val grpcClient = managedChannelResource
     .flatMap(LocationServiceFs2Grpc.stubResource(_))
   
