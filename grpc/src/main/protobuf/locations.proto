@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 
 service LocationService {
   rpc createLocations (Locations) returns (stream Location) {}
-  rpc getLocations (GetRequest) returns (stream Location) {}
+  rpc getLocations (Query) returns (stream Location) {}
   rpc locationStats (Period) returns (stream LocationStats) {}
 }
 
@@ -16,7 +16,7 @@ message Period {
   google.protobuf.Timestamp to = 2; 
 }
 
-message GetRequest {
+message Query {
   Period period = 1;
   repeated string ids = 2;
 }

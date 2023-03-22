@@ -23,8 +23,8 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
     for {
       grpcApi <- Stream.resource(grpcClient)
-      request = grpc.GetRequest().withPeriod(period.toMessage).withIds(ids)
-      location <- grpcApi.getLocations(request, new Metadata)
+      query = grpc.Query().withPeriod(period.toMessage).withIds(ids)
+      location <- grpcApi.getLocations(query, new Metadata)
     } yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
