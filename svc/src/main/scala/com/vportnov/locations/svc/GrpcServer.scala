@@ -4,7 +4,7 @@ import cats.effect._
 import doobie._
 import io.grpc._
 
-import com.vportnov.locations.grpc.LocationsFs2Grpc
+import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.svc.GrpcService
 
 object GrpcServer:
@@ -12,6 +12,6 @@ object GrpcServer:
     val tx = Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql://db:5432/locations", "locator", "locator")
     val db = new StorageDb(tx)
 
-    LocationsFs2Grpc
+    LocationServiceFs2Grpc
       .bindServiceResource(new GrpcService(db))
       .use(server)

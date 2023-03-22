@@ -5,7 +5,8 @@ package com.vportnov.locations.grpc;
 import "google/protobuf/timestamp.proto";
 
 
-service Locations {
+service LocationService {
+  rpc createLocations (Locations) returns (stream Location) {}
   rpc getLocations (GetRequest) returns (stream Location) {}
   rpc locationStats (Period) returns (stream LocationStats) {}
 }
@@ -35,4 +36,8 @@ message Location {
   BigDecimal longitude = 2;
   BigDecimal latitude = 3;
   google.protobuf.Timestamp created = 4;
+}
+
+message Locations {
+  repeated Location list = 1;
 }

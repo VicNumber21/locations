@@ -8,21 +8,24 @@ import fs2.Stream
 import io.grpc._
 
 import com.vportnov.locations.model
-import com.vportnov.locations.grpc.LocationsFs2Grpc
+import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
 
 // TODO remove StorageDb during rework to eal gRpc
 final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[F]:
   override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] =
-    db.createLocations(locations)
+    for {
+      grpcApi <- Stream.resource(grpcClient)
+      location <- grpcApi.createLocations(locations.toMessage, new Metadata)
+    } yield location.toLocationWithCreatedField
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
     for {
       grpcApi <- Stream.resource(grpcClient)
       request = grpc.GetRequest().withPeriod(period.toMessage).withIds(ids)
       location <- grpcApi.getLocations(request, new Metadata)
-    }yield location.toLocationWithCreatedField
+    } yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
     db.updateLocations(locations)
@@ -43,5 +46,5 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
       .resource[F]
   
   val grpcClient = managedChannelResource
-    .flatMap(LocationsFs2Grpc.stubResource(_))
+    .flatMap(LocationServiceFs2Grpc.stubResource(_))
   
