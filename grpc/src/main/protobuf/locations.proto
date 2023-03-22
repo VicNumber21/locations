@@ -10,6 +10,7 @@ service LocationService {
   rpc getLocations (Query) returns (stream Location) {}
   rpc updateLocations (Locations) returns (stream Location) {}
   rpc locationStats (Period) returns (stream LocationStats) {}
+  rpc deleteLocations (Ids) returns (stream Count) {}
 }
 
 message Period {
@@ -20,6 +21,15 @@ message Period {
 message Query {
   Period period = 1;
   repeated string ids = 2;
+}
+
+// TODO resuse in Query?
+message Ids {
+  repeated string ids = 1;
+}
+
+message Count {
+  int32 count = 1;
 }
 
 message BigDecimal {

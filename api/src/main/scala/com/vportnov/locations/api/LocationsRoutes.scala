@@ -1,6 +1,6 @@
 package com.vportnov.locations.api
 
-import cats.effect.kernel.Async
+import cats.effect.{ Async, Sync }
 import cats.syntax.all._
 
 import org.http4s.dsl.Http4sDsl
@@ -86,9 +86,9 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
         .serverLogicSuccess(period => response(storage.locationStats(period), "locationStats stream is done"))
     )
   
-  private def response[O](stream: Stream[F, O],logMessage: String)(using encoder: io.circe.Encoder[O]) =
+  private def response[O](stream: Stream[F, O],logMessage: String)(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
-      .onFinalize(logger.debug(logMessage).pure[F]) // TODO it might be better approach to do this logging in storages
+      .onFinalize(Sync[F].delay { logger.info(logMessage) }) // TODO it might be better approach to do this logging in storages
       .map(_.asJson.noSpaces)
       .catchError { error =>
         logException(error)
@@ -98,17 +98,10 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       .through(fs2.text.utf8.encode)
       .pure[F]
 
-  private def response[SR, T, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => StatusCode)
-                             (using scala.util.NotGiven[SR =:= Either[Throwable, T]]): F[Either[StatusCode, O]] =
+  private def response[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => StatusCode): F[Either[StatusCode, O]] =
     for {
       unpacked <- storageResponse.attempt
     } yield unpacked.map(mapper).left.map(errorMapper)
-
-  private def response[SR, T, O](storageResponse: F[SR], mapper: T => O, errorMapper: Throwable => StatusCode)
-                             (using SR =:= Either[Throwable, T]): F[Either[StatusCode, O]] =
-    for {
-      unpacked <- storageResponse.attempt
-    } yield unpacked.joinRight.map(mapper).left.map(errorMapper)
 
   private def deleteSuccess(count: Int): LocationsRoutes.ResponseCode = count match
     case 0 => LocationsRoutes.ResponseCode.Ok

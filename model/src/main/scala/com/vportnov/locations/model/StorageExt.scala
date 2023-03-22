@@ -17,5 +17,5 @@ trait StorageExt[F[_]: Sync] extends Storage[F]:
   def updateLocation(location: Location.WithoutCreatedField): F[Location.WithCreatedField] = 
     updateLocations(List(location)).firstEntry
 
-  def deleteLocation(id: Location.Id): F[Either[Throwable, Int]] =
+  def deleteLocation(id: Location.Id): F[Int] =
     deleteLocations(List(id))

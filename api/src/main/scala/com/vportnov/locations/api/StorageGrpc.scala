@@ -8,9 +8,11 @@ import fs2.Stream
 import io.grpc._
 
 import com.vportnov.locations.model
+import com.vportnov.locations.model.StreamExtOps._
 import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
+
 
 // TODO remove StorageDb during rework to eal gRpc
 final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[F]:
@@ -33,8 +35,14 @@ final class StorageGrpc[F[_]: Async](db: StorageDb[F]) extends model.StorageExt[
       location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
     } yield location.toLocationWithCreatedField
 
-  override def deleteLocations(ids: model.Location.Ids): F[Either[Throwable, Int]] =
-    db.deleteLocations(ids)
+  override def deleteLocations(ids: model.Location.Ids): F[Int] =
+    val countStream: Stream[F, Int] = for {
+      grpcApi <- Stream.resource(grpcClient)
+      count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
+    } yield count.count
+
+    countStream.firstEntry
+
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
     for {

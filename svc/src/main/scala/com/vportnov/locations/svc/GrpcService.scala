@@ -21,3 +21,6 @@ final class GrpcService[F[_]](storage: model.Storage[F]) extends LocationService
 
   override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
     storage.locationStats(period.toModel).map(_.toMessage)
+
+  def deleteLocations(ids: grpc.Ids, ctx: Metadata): Stream[F, grpc.Count] =
+    Stream.eval(storage.deleteLocations(ids.ids.toList)).map(grpc.Count(_))

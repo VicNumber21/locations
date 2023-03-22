@@ -30,14 +30,13 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
       .transact(tx)
 
-  def deleteLocations(ids: Location.Ids): F[Either[Throwable, Int]] =
+  def deleteLocations(ids: Location.Ids): F[Int] =
     if ids.isEmpty
-      then Sync[F].delay(Left(new IllegalArgumentException("Ids list must not be empty")))
+      then Sync[F].raiseError(new IllegalArgumentException("Ids list must not be empty"))
       else
           sql.delete.locations(ids)
             .run
             .transact(tx)
-            .map(Right(_))
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)

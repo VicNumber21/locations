@@ -13,6 +13,6 @@ trait Storage[F[_]]:
 
   def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F]
 
-  def deleteLocations(ids: Location.Ids): F[Either[Throwable, Int]]
+  def deleteLocations(ids: Location.Ids): F[Int]
   
   def locationStats(period: Period): LocationStatsStream[F]
