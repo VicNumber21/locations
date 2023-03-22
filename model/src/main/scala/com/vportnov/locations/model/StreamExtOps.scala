@@ -7,6 +7,6 @@ import cats.implicits._
 object StreamExtOps:
   extension [F[_]: Sync, O] (stream: Stream[F, O])
     def firstEntry: F[O] =
-      for {
+      for
         list <- stream.take(1).compile.toList
-      } yield list.head
+      yield list.head

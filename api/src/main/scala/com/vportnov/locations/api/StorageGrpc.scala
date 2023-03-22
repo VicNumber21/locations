@@ -15,38 +15,39 @@ import com.vportnov.locations.grpc.bindings._
 
 final class StorageGrpc[F[_]: Async] extends model.StorageExt[F]:
   override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] =
-    for {
+    for
       grpcApi <- Stream.resource(grpcClient)
       location <- grpcApi.createLocations(locations.toMessage, new Metadata)
-    } yield location.toLocationWithCreatedField
+    yield location.toLocationWithCreatedField
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
-    for {
+    for
       grpcApi <- Stream.resource(grpcClient)
       query = grpc.Query().withPeriod(period.toMessage).withIds(ids)
       location <- grpcApi.getLocations(query, new Metadata)
-    } yield location.toLocationWithCreatedField
+    yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
-    for {
+    for
       grpcApi <- Stream.resource(grpcClient)
       location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
-    } yield location.toLocationWithCreatedField
+    yield location.toLocationWithCreatedField
 
   override def deleteLocations(ids: model.Location.Ids): F[Int] =
-    val countStream: Stream[F, Int] = for {
-      grpcApi <- Stream.resource(grpcClient)
-      count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
-    } yield count.count
+    val countStream: Stream[F, Int] =
+      for
+        grpcApi <- Stream.resource(grpcClient)
+        count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
+      yield count.count
 
     countStream.firstEntry
-
+  end deleteLocations
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
-    for {
+    for
       grpcApi <- Stream.resource(grpcClient)
       stats <- grpcApi.locationStats(new grpc.Period(), new Metadata)
-    } yield stats.toModel
+    yield stats.toModel
 
   private val managedChannelResource: Resource[F, ManagedChannel] =
     NettyChannelBuilder
@@ -56,4 +57,3 @@ final class StorageGrpc[F[_]: Async] extends model.StorageExt[F]:
   
   private val grpcClient = managedChannelResource
     .flatMap(LocationServiceFs2Grpc.stubResource(_))
-  

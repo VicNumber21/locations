@@ -99,9 +99,9 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       .pure[F]
 
   private def response[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => StatusCode): F[Either[StatusCode, O]] =
-    for {
+    for
       unpacked <- storageResponse.attempt
-    } yield unpacked.map(mapper).left.map(errorMapper)
+    yield unpacked.map(mapper).left.map(errorMapper)
 
   private def deleteSuccess(count: Int): LocationsRoutes.ResponseCode = count match
     case 0 => LocationsRoutes.ResponseCode.Ok

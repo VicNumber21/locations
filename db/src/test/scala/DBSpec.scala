@@ -197,10 +197,7 @@ class LocationsTableSpec extends AnyFlatSpec
     Given(s"random alphanumeric strings with length from ${idLengthRange.start} to ${idLengthRange.end} generated")
       val locationIdGen = (n: Int) => Gen.listOfN(n, Gen.alphaNumChar).map(_.mkString)
 
-      val locationGen  = Gen.sized( size => for {
-          locationId <- locationIdGen(size)
-        } yield Location(locationId)
-      )
+      val locationGen  = Gen.sized(size => for locationId <- locationIdGen(size) yield Location(locationId))
 
       val locations = idLengthRange.toList.map(size => Gen.resize(size, locationGen).sample.get.withoutDate)
 
