@@ -10,7 +10,7 @@ import com.vportnov.locations.svc.GrpcService
 object GrpcServer:
   def run[F[_]: Async, T](server: ServerServiceDefinition => F[T]) =
     val tx = Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql://db:5432/locations", "locator", "locator")
-    val db = new StorageDb(tx)
+    val db = new DbStorage(tx)
 
     LocationServiceFs2Grpc
       .bindServiceResource(new GrpcService(db))

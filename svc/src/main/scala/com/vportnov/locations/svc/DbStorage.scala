@@ -11,8 +11,8 @@ import doobie.postgres.implicits._
 import com.vportnov.locations.model._
 
 
-final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
-  import StorageDb._
+final class DbStorage[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
+  import DbStorage._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
     sql.insert.locations(locations)
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
@@ -42,7 +42,7 @@ final class StorageDb[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
     sql.select.stats(period).stream.transact(tx)
   
 
-object StorageDb:
+object DbStorage:
   //TODO test sql
   object sql:
     object select:

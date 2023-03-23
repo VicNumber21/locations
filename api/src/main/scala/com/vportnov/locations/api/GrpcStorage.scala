@@ -14,7 +14,7 @@ import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
 
 
-final class StorageGrpc[F[_]: Async](grpcAddress: Address) extends model.StorageExt[F]:
+final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.StorageExt[F]:
   override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] =
     for
       grpcApi <- grpcApiStream

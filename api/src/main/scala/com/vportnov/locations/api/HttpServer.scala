@@ -7,11 +7,12 @@ import org.http4s.ember.server.EmberServerBuilder
 import com.vportnov.locations.api.Config
 import com.vportnov.locations.api.HttpService
 
+import com.vportnov.locations.api.GrpcStorage
 
 final class HttpServer[F[_]: Async](settings: Config.Settings):
   def run: F[ExitCode] = server
 
-  private val storage = new StorageGrpc[F](settings.grpc)
+  private val storage = new GrpcStorage[F](settings.grpc)
   private val service = new HttpService(storage)
 
   private val server =
