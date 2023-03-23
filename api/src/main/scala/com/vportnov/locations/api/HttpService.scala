@@ -10,17 +10,16 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
 import com.vportnov.locations.api.LocationsRoutes
-import com.vportnov.locations.api.StorageGrpc
+import com.vportnov.locations.model.StorageExt
 
 
-object Service:
-  def app: HttpApp[IO] = Router("/" -> (routes)).orNotFound
+final class HttpService[F[_]: Async](storage: StorageExt[F]):
+  def app: HttpApp[F] = Router("/" -> (routes)).orNotFound
 
-  private val storage = new StorageGrpc[IO]
   private val locationsRoutes = new LocationsRoutes(storage)
-  private val swaggerRoutes: HttpRoutes[IO] =
-    Http4sServerInterpreter[IO]().toRoutes(SwaggerInterpreter().fromEndpoints[IO](LocationsRoutes.endpoints, "Locations Service", "1.0.0"))
+  private val swaggerRoutes: HttpRoutes[F] =
+    Http4sServerInterpreter[F]().toRoutes(SwaggerInterpreter().fromEndpoints[F](LocationsRoutes.endpoints, "Locations Service", "1.0.0"))
 
-  private val routes: HttpRoutes[IO] = 
+  private val routes: HttpRoutes[F] = 
     locationsRoutes.routes <+>
     swaggerRoutes

@@ -2,11 +2,13 @@ services:
   api:
     image: vportnov/locations-api
     environment:
-      API_PORT: "${API_PORT_INT}"
+      HTTP_PORT: "${HTTP_PORT}"
+      GRPC_HOST: "svc"
+      GRPC_PORT: "${SVC_PORT}"
     ports:
-      - "${API_PORT}:${API_PORT_INT}"
+      - "${API_PORT}:${HTTP_PORT}"
     networks:
-      - svc
+      - grpc
 
   svc:
     image: vportnov/locations-svc
@@ -14,7 +16,7 @@ services:
       - "${SVC_PORT}:9090"
     networks:
       - db
-      - svc
+      - grpc
 
   db:
     image: vportnov/locations-db
@@ -43,4 +45,4 @@ services:
 
 networks:
   db:
-  svc:
+  grpc:
