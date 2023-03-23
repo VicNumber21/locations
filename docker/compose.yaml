@@ -4,7 +4,7 @@ services:
     environment:
       HTTP_PORT: "${HTTP_PORT}"
       GRPC_HOST: "svc"
-      GRPC_PORT: "${SVC_PORT}"
+      GRPC_PORT: "${GRPC_PORT}"
     ports:
       - "${API_PORT}:${HTTP_PORT}"
     networks:
@@ -12,8 +12,14 @@ services:
 
   svc:
     image: vportnov/locations-svc
+    environment:
+      GRPC_PORT: "${GRPC_PORT}"
+      DB_DRIVER: "${DB_DRIVER}"
+      DB_URL: "${DB_URL}"
+      DB_USER: "${DB_USER}"
+      DB_PASSWORD: ${DB_USER_PASSWORD}
     ports:
-      - "${SVC_PORT}:9090"
+      - "${SVC_PORT}:${GRPC_PORT}"
     networks:
       - db
       - grpc
@@ -22,10 +28,10 @@ services:
     image: vportnov/locations-db
     environment:
       POSTGRES_USER: "${DB_ADMIN}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
-      PGDATA: "/var/lib/postgresql/data/pgdata"
+      POSTGRES_PASSWORD: "${DB_ADMIN_PASSWORD}"
+      PGDATA: "${DB_PATH}/pgdata"
     volumes:
-      - ${DB_PATH}:/var/lib/postgresql/data
+      - ${DB_VOLUME}:${DB_PATH}
     ports:
       - "${DB_PORT}:5432"
     networks:

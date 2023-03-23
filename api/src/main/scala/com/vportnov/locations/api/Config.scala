@@ -1,5 +1,6 @@
 package com.vportnov.locations.api
 
+import scala.reflect.ClassTag
 import cats.effect.Sync
 import cats.syntax.all._
 import com.comcast.ip4s._
@@ -17,12 +18,9 @@ object Config:
 
   def loadSettings[F[_]: Sync] =
     for
-      apiAddress <- loadApiAddress
-      svcAddress <- loadSvcAddress
-    yield Settings(apiAddress, svcAddress)
+      http <- load[F, Address]("http")
+      grpc <- load[F, Address]("grpc")
+    yield Settings(http, grpc)
 
-  private def loadApiAddress[F[_]: Sync]: F[Address] = load("http")
-  private def loadSvcAddress[F[_]: Sync]: F[Address] = load("grpc")
-
-  private def load[F[_]: Sync](section: String): F[Address] =
-    Sync[F].delay { ConfigSource.default.at(section).loadOrThrow[Address] }
+  private def load[F[_]: Sync, T: ClassTag](section: String)(using reader: ConfigReader[T]): F[T] =
+    Sync[F].delay { ConfigSource.default.at(section).loadOrThrow[T] }

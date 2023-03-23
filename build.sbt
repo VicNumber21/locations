@@ -90,6 +90,8 @@ lazy val svc =
 
           libs.grpcNetty,
 
+          libs.pureConfig,
+
           libs.slf4jSimple
         )
     )

@@ -41,7 +41,7 @@ final class DbEnv:
   val portEnd = 5999;
   val rnd = new Random;
   val port = portBegin + rnd.nextInt(portEnd - portBegin + 1)
-  val path = if isDebug then "/tmp/locations_db_fast_test"
+  val volume = if isDebug then "/tmp/locations_db_fast_test"
              else s"/tmp/locations_db_testing/${Random.alphanumeric.take(10).mkString}"
 
   val waitTimes = (() =>
@@ -56,8 +56,8 @@ final class DbEnv:
   val random =
     Map(
       "DB_ADMIN" -> s"user_${Random.alphanumeric.take(10).mkString}" ,
-      "DB_PASSWORD" -> s"pswd_${Random.alphanumeric.take(10).mkString}",
-      "DB_PATH" -> path,
+      "DB_ADMIN_PASSWORD" -> s"pswd_${Random.alphanumeric.take(10).mkString}",
+      "DB_VOLUME" -> volume,
       "DB_NAME" -> "locations",
       "DB_PORT" -> s"${port}"
     )
