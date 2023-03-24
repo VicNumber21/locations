@@ -25,11 +25,10 @@ import com.vportnov.locations.model._
 import com.vportnov.locations.api.types._
 import com.vportnov.locations.api.tapir.fs2stream.json._
 import com.vportnov.locations.api.fs2stream.string.syntax._
+import com.vportnov.locations.api.throwable.syntax._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
-  import ThrowableExtraOps._
-
   val logger = LoggerFactory.getLogger(classOf[LocationsRoutes[F]])
 
   val createRoute: HttpRoutes[F] =
@@ -252,13 +251,3 @@ object LocationsRoutes:
       deleteOneEndpoint,
       statsEndpoint
     )
-
-// TODO move to another file
-import java.io.StringWriter
-import java.io.PrintWriter
-object ThrowableExtraOps:
-  extension (error: Throwable)
-    def printableStackTrace: String =
-      val sw = new StringWriter
-      error.printStackTrace(new PrintWriter(sw))
-      sw.toString
