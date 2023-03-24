@@ -22,7 +22,7 @@ import fs2.Stream
 import com.vportnov.locations.model._
 import com.vportnov.locations.api.types._
 import com.vportnov.locations.api.tapir.fs2stream.json._
-import com.vportnov.locations.api.fs2stream.string.syntax._
+import com.vportnov.locations.utils.fs2stream.syntax._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:

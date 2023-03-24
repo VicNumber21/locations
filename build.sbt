@@ -3,16 +3,28 @@ import sbt.Keys._
 
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 
+
+lazy val utils =
+  (project in file("./utils"))
+    .settings(settings.common)
+    .settings(
+      libraryDependencies ++= Seq(
+        libs.catsEffect,
+        libs.fs2Core,
+        libs.log4catsSLF4J
+      )
+    )
+
 lazy val model =
   (project in file("./model"))
     .settings(settings.common)
     .settings(
       libraryDependencies ++= Seq(
         libs.catsEffect,
-
         libs.fs2Core
       )
     )
+    .dependsOn(utils)
 
 lazy val grpc =
   (project in file("./grpc"))
@@ -76,6 +88,7 @@ lazy val api =
     )
     .enablePlugins(DockerPlugin)
     .enablePlugins(PackPlugin)
+    .dependsOn(utils)
     .dependsOn(model)
     .dependsOn(grpc)
 
@@ -129,7 +142,7 @@ lazy val svc =
 
 lazy val locations =
   Project("locations", file("."))
-    .aggregate(grpc, api, svc)
+    .aggregate(grpc, api, svc, model, utils)
 
 
 lazy val build = taskKey[Unit]("production build sequence")
@@ -170,6 +183,7 @@ lazy val libs =
       val fs2 = "3.6.1"
       val grpcNetty = "1.53.0"
       val http4s = "0.23.18"
+      val log4cats = "2.5.0"
       val pureConfig = "0.17.2"
       val scalacheck = "3.2.15.0"
       val scalatest = "3.2.15"
@@ -193,6 +207,8 @@ lazy val libs =
     val http4sDsl = "org.http4s" %% "http4s-dsl" % version.http4s
     val http4sCirce = "org.http4s" %% "http4s-circe" % version.http4s
     val http4sEmberServer = "org.http4s" %% "http4s-ember-server" % version.http4s
+    
+    val log4catsSLF4J = "org.typelevel" %% "log4cats-slf4j" % version.log4cats
 
     val pureConfig = "com.github.pureconfig" %% "pureconfig-core" % version.pureConfig
 

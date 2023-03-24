@@ -11,10 +11,11 @@ import io.grpc._
 
 import com.vportnov.locations.api.Config.Address
 import com.vportnov.locations.model
-import com.vportnov.locations.model.StreamExtOps._ // TODO required if deleteLocations is kept using stream as transport
+import com.vportnov.locations.utils.fs2stream.syntax._
 import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
+import com.vportnov.locations.utils.LoggingIO
 
 
 final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.StorageExt[F] with LoggingIO[F]:

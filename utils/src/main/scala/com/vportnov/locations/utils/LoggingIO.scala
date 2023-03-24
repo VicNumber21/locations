@@ -1,4 +1,4 @@
-package com.vportnov.locations.api
+package com.vportnov.locations.utils
 
 import cats.effect.Sync
 import cats.syntax.all._
