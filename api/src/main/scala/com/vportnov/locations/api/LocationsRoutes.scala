@@ -18,12 +18,12 @@ import io.circe.generic.auto._
 
 import sttp.capabilities.fs2.Fs2Streams
 import fs2.Stream
-import java.nio.charset.StandardCharsets
 
 import org.slf4j.LoggerFactory
 
 import com.vportnov.locations.model._
 import com.vportnov.locations.api.types._
+import com.vportnov.locations.api.tapir.fs2stream.json._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
@@ -252,10 +252,6 @@ object LocationsRoutes:
       deleteOneEndpoint,
       statsEndpoint
     )
-
-  // TODO move to another object and file
-  def fs2StreamJsonBodyUTF8[F[_], T](using schema: Schema[T]) =
-    streamBody(Fs2Streams[F])(schema, CodecFormat.Json(), Option(StandardCharsets.UTF_8))
 
 
 // TODO move to another file
