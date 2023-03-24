@@ -100,13 +100,9 @@ lazy val svc =
         Seq(
           libs.doobieCore,
           libs.doobiePostgres,
-
           libs.flywayCore,
-
           libs.grpcNetty,
-
           libs.pureConfig,
-
           libs.slf4jSimple
         )
     )

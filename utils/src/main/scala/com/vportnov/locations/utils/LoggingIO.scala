@@ -10,8 +10,7 @@ import fs2.Stream
 
 trait LoggingIO[F[_]: Sync]:
   given Logger[F] = Slf4jLogger.getLoggerFromClass(getClass())
+  val log = Logger[F]
 
   protected def logStreamError(message: String): PartialFunction[Throwable, Stream[[x] =>> F[x], Unit]] =
     error => Stream.eval(Logger[F].error(error)(message))
-
-  protected def currentMethodName : String = Thread.currentThread.getStackTrace()(4).getMethodName

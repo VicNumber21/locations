@@ -10,37 +10,52 @@ import doobie.postgres.implicits._
 
 import com.vportnov.locations.svc.Config
 import com.vportnov.locations.model._
+import com.vportnov.locations.utils.LoggingIO
 
 
-final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
+final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F] with LoggingIO[F]:
   import DbStorage._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
     sql.insert.locations(locations)
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
       .transact(tx)
+      .onFinalize(log.info("createLocations stream is done"))
+      .onError(logStreamError("Exception on request createLocations"))
 
   override def getLocations(period: Period, ids: Location.Ids): LocationStream[F] =
-    sql.select.locations(period, ids) match
-      case Some(query) =>
-        query.stream.transact(tx)
-      case None =>
-        fs2.Stream.raiseError(new IllegalArgumentException("Should not request both filters by ids and by dates"))
+    (
+      sql.select.locations(period, ids) match
+        case Some(query) =>
+          query.stream.transact(tx)
+        case None =>
+          fs2.Stream.raiseError(new IllegalArgumentException("Should not request both filters by ids and by dates"))
+    )
+      .onFinalize(log.info("getLocations stream is done"))
+      .onError(logStreamError("Exception on request getLocations"))
+
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     sql.update.locations(locations)
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
       .transact(tx)
+      .onFinalize(log.info("updateLocations stream is done"))
+      .onError(logStreamError("Exception on request updateLocations"))
 
   override def deleteLocations(ids: Location.Ids): F[Int] =
-    if ids.isEmpty
-      then Sync[F].raiseError(new IllegalArgumentException("Ids list must not be empty"))
-      else
-          sql.delete.locations(ids)
-            .run
-            .transact(tx)
+    (
+      if ids.isEmpty
+        then Sync[F].raiseError(new IllegalArgumentException("Ids list must not be empty"))
+        else
+            sql.delete.locations(ids)
+              .run
+              .transact(tx)
+    )
+      .onError(error => log.error(error)("Exception on request deleteLocations"))
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)
+      .onFinalize(log.info("locationStats stream is done"))
+      .onError(logStreamError("Exception on request locationStats"))
 
   private val tx = Transactor.fromDriverManager[F](db.driver, db.userUrl, db.user.login, db.user.password)
   

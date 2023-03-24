@@ -24,8 +24,8 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
       grpcApi <- grpcApiStream
       location <- grpcApi.createLocations(locations.toMessage, new Metadata)
     yield location.toLocationWithCreatedField)
-      .onFinalize(info"${currentMethodName} stream is done")
-      .onError(logStreamError(s"Exception on request ${currentMethodName}"))
+      .onFinalize(info"createLocations stream is done")
+      .onError(logStreamError("Exception on request createLocations"))
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
     (for
@@ -33,16 +33,16 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
       query = grpc.Query().withPeriod(period.toMessage).withIds(ids)
       location <- grpcApi.getLocations(query, new Metadata)
     yield location.toLocationWithCreatedField)
-      .onFinalize(info"${currentMethodName} stream is done")
-      .onError(logStreamError(s"Exception on request ${currentMethodName}"))
+      .onFinalize(info"getLocations stream is done")
+      .onError(logStreamError("Exception on request getLocations"))
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
     (for
       grpcApi <- grpcApiStream
       location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
     yield location.toLocationWithCreatedField)
-      .onFinalize(info"${currentMethodName} stream is done")
-      .onError(logStreamError(s"Exception on request ${currentMethodName}"))
+      .onFinalize(info"updateLocations stream is done")
+      .onError(logStreamError("Exception on request updateLocations"))
 
   override def deleteLocations(ids: model.Location.Ids): F[Int] =
     val countStream: Stream[F, Int] =
@@ -50,8 +50,8 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
         grpcApi <- grpcApiStream
         count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
       yield count.count)
-        .onFinalize(info"${currentMethodName} stream is done")
-        .onError(logStreamError(s"Exception on request ${currentMethodName}"))
+        .onFinalize(info"deleteLocations stream is done")
+        .onError(logStreamError("Exception on request deleteLocations"))
 
     for
       count <- countStream.firstEntry
@@ -64,8 +64,8 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
       grpcApi <- grpcApiStream
       stats <- grpcApi.locationStats(new grpc.Period(), new Metadata)
     yield stats.toModel)
-      .onFinalize(info"${currentMethodName} stream is done")
-      .onError(logStreamError(s"Exception on request ${currentMethodName}"))
+      .onFinalize(info"locationStats stream is done")
+      .onError(logStreamError("Exception on request locationStats"))
 
   private val grpcClient: Resource[F, LocationServiceFs2Grpc[F, Metadata]] =
     NettyChannelBuilder
