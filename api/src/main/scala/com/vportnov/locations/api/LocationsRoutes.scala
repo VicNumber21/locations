@@ -24,10 +24,10 @@ import org.slf4j.LoggerFactory
 import com.vportnov.locations.model._
 import com.vportnov.locations.api.types._
 import com.vportnov.locations.api.tapir.fs2stream.json._
+import com.vportnov.locations.api.fs2stream.string.syntax._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
-  import StringStreamOps._
   import ThrowableExtraOps._
 
   val logger = LoggerFactory.getLogger(classOf[LocationsRoutes[F]])
@@ -252,23 +252,6 @@ object LocationsRoutes:
       deleteOneEndpoint,
       statsEndpoint
     )
-
-
-// TODO move to another file
-object StringStreamOps:
-  extension [F[_]: Async, O] (stream: Stream[F, String])
-    def catchError(errorMapper: Throwable => String): Stream[F, String] =
-      stream
-        .attempt
-        .map {
-          case Right(s) => s
-          case Left(e) => errorMapper(e)
-        }
-
-    def toJsonArray: Stream[F, String] =
-      val prefix = Stream.eval("[".pure[F])
-      val suffix = Stream.eval("]".pure[F])
-      prefix ++ stream.intersperse(",") ++ suffix
 
 // TODO move to another file
 import java.io.StringWriter
