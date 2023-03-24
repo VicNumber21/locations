@@ -13,14 +13,15 @@ import com.vportnov.locations.svc.Config.Settings
 import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.svc.GrpcService
 
-final class GrpcServer[F[_]: Async](settings: Settings):
-  def run = server
+final class GrpcServer[F[_]: Async](cfg: Settings):
+  def run: F[ExitCode] = server
 
-  private val tx = Transactor.fromDriverManager[F](settings.db.driver, settings.db.url, settings.db.user, settings.db.password)
+  // TODO move tx inot DbStorage?
+  private val tx = Transactor.fromDriverManager[F](cfg.db.driver, cfg.db.userUrl, cfg.db.user.login, cfg.db.user.password)
   private val db = new DbStorage(tx)
 
   private def netty(service: ServerServiceDefinition): F[ExitCode] = NettyServerBuilder
-    .forPort(settings.grpc.port.value)
+    .forPort(cfg.grpc.port.value)
     .addService(service)
     .resource[F]
     .evalMap(server => Sync[F].delay {server.start() })

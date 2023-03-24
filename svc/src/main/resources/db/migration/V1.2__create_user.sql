@@ -1,0 +1,3 @@
+CREATE USER locator WITH PASSWORD 'locator';
+GRANT CONNECT ON DATABASE locations TO locator;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE locations TO locator;

@@ -12,12 +12,18 @@ services:
 
   svc:
     image: vportnov/locations-svc
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       GRPC_PORT: "${GRPC_PORT}"
       DB_DRIVER: "${DB_DRIVER}"
       DB_URL: "${DB_URL}"
+      DB_NAME: "${DB_NAME}"
       DB_USER: "${DB_USER}"
-      DB_PASSWORD: ${DB_USER_PASSWORD}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+      DB_ADMIN: "${DB_ADMIN}"
+      DB_ADMIN_PASSWORD: "${DB_ADMIN_PASSWORD}"
     ports:
       - "${SVC_PORT}:${GRPC_PORT}"
     networks:
@@ -25,7 +31,7 @@ services:
       - grpc
 
   db:
-    image: vportnov/locations-db
+    image: postgres:15.2-alpine3.17
     environment:
       POSTGRES_USER: "${DB_ADMIN}"
       POSTGRES_PASSWORD: "${DB_ADMIN_PASSWORD}"
@@ -38,10 +44,10 @@ services:
       - db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 1s
+      timeout: 1s
+      retries: 120
+      start_period: 1s
     restart: unless-stopped
     deploy:
       resources:

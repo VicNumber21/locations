@@ -88,6 +88,8 @@ lazy val svc =
           libs.doobieCore,
           libs.doobiePostgres,
 
+          libs.flywayCore,
+
           libs.grpcNetty,
 
           libs.pureConfig,
@@ -125,58 +127,9 @@ lazy val svc =
     .dependsOn(model)
     .dependsOn(grpc)
 
-lazy val db =
-  (project in file("./db"))
-    .settings(settings.common)
-    .settings(
-      libraryDependencies ++=
-        Seq(
-          libs.scalastick % Test,
-          libs.scalatest % Test,
-          libs.scalacheck % Test
-        ),
-
-      libraryDependencies ++=
-        Seq(
-          libs.testcontainersScalatest % Test,
-          libs.slf4jSimple % Test
-        ),
-
-      libraryDependencies ++=
-        Seq(
-          libs.doobieCore % Test,
-          libs.doobiePostgres % Test,
-          libs.doobieScalatest % Test
-        )
-    )
-    .settings(
-      docker / dockerfile := NativeDockerfile(file("./db") / "Dockerfile"),
-      docker / imageNames := Seq(
-        ImageName(
-          namespace = Some(settings.docker.namespace),
-          repository = settings.docker.name.db,
-          tag = Some("latest")
-        ),
-        ImageName(
-          namespace = Some(settings.docker.namespace),
-          repository = settings.docker.name.db,
-          tag = Some(version.value)
-        )
-      )
-    )
-    .settings(
-      (Test / test) := (Test / test).dependsOn(docker).value
-    )
-    .settings(
-      build := Def.sequential(
-        docker
-      ).value
-    )
-    .enablePlugins(DockerPlugin)
-
 lazy val locations =
   Project("locations", file("."))
-    .aggregate(grpc, api, svc, db)
+    .aggregate(grpc, api, svc)
 
 
 lazy val build = taskKey[Unit]("production build sequence")
@@ -204,7 +157,6 @@ lazy val settings =
       object name {
         val api = "locations-api"
         val svc = "locations-svc"
-        val db = "locations-db"
       }
     }
   }
@@ -214,6 +166,7 @@ lazy val libs =
     object version {
       val cats = "3.4.8"
       val doobie = "1.0.0-RC2"
+      val flyway = "9.16.1"
       val fs2 = "3.6.1"
       val grpcNetty = "1.53.0"
       val http4s = "0.23.18"
@@ -232,6 +185,7 @@ lazy val libs =
     val doobiePostgres = "org.tpolecat" %% "doobie-postgres"  % version.doobie
     val doobieScalatest = "org.tpolecat" %% "doobie-scalatest" % version.doobie
 
+    val flywayCore = "org.flywaydb" %  "flyway-core" % version.flyway
     val fs2Core = "co.fs2" %% "fs2-core" % version.fs2
 
     val grpcNetty = "io.grpc" % "grpc-netty" % version.grpcNetty
