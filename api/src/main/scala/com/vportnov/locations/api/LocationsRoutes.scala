@@ -1,6 +1,6 @@
 package com.vportnov.locations.api
 
-import cats.effect.{ Async, Sync }
+import cats.effect.Async
 import cats.syntax.all._
 
 import org.http4s.dsl.Http4sDsl
@@ -19,22 +19,17 @@ import io.circe.generic.auto._
 import sttp.capabilities.fs2.Fs2Streams
 import fs2.Stream
 
-import org.slf4j.LoggerFactory
-
 import com.vportnov.locations.model._
 import com.vportnov.locations.api.types._
 import com.vportnov.locations.api.tapir.fs2stream.json._
 import com.vportnov.locations.api.fs2stream.string.syntax._
-import com.vportnov.locations.api.throwable.syntax._
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
-  val logger = LoggerFactory.getLogger(classOf[LocationsRoutes[F]])
-
   val createRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.createEndpoint
-        .serverLogicSuccess(request => response(storage.createLocations(request.map(_.toLocation)), "createLocations stream is done"))
+        .serverLogicSuccess(request => response(storage.createLocations(request.map(_.toLocation))))
     )
   
   val createOneRoute: HttpRoutes[F] =
@@ -46,7 +41,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val getRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.getEndpoint
-        .serverLogicSuccess((period, ids) => response(storage.getLocations(period, ids), "getLocations stream is done"))
+        .serverLogicSuccess((period, ids) => response(storage.getLocations(period, ids)))
     )
 
   val getOneRoute: HttpRoutes[F] =
@@ -58,7 +53,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val updateRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.updateEndpoint
-        .serverLogicSuccess(request => response(storage.updateLocations(request.map(_.toLocation)), "updateLocations stream is done"))
+        .serverLogicSuccess(request => response(storage.updateLocations(request.map(_.toLocation))))
     )
   
   val updateOneRoute: HttpRoutes[F] =
@@ -82,15 +77,13 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val statsRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.statsEndpoint
-        .serverLogicSuccess(period => response(storage.locationStats(period), "locationStats stream is done"))
+        .serverLogicSuccess(period => response(storage.locationStats(period)))
     )
   
-  private def response[O](stream: Stream[F, O],logMessage: String)(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
+  private def response[O](stream: Stream[F, O])(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
-      .onFinalize(Sync[F].delay { logger.info(logMessage) }) // TODO it might be better approach to do this logging in storages
       .map(_.asJson.noSpaces)
       .catchError { error =>
-        logException(error)
         ServerError(error.getMessage()).asJson.noSpaces
       }
       .toJsonArray
@@ -105,9 +98,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   private def deleteSuccess(count: Int): LocationsRoutes.ResponseCode = count match
     case 0 => LocationsRoutes.ResponseCode.Ok
     case n if n > 0 => LocationsRoutes.ResponseCode.NoContent
-    case strange =>
-      logger.error(s"This should never come -> ${strange.toString}")
-      LocationsRoutes.ResponseCode.InternalServerError
+    case strange => LocationsRoutes.ResponseCode.InternalServerError
   
   private def notFoundError(error: Throwable) = error match
     case _ : java.util.NoSuchElementException => StatusCode.NotFound
@@ -118,14 +109,9 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
     case _ => commonErrors(error)
 
   private def commonErrors(error: Throwable) =
-    logException(error)
-
     error match
       case _: IllegalArgumentException => StatusCode.BadRequest
       case _ => StatusCode.InternalServerError
-    
-  private def logException(error: Throwable) =
-    logger.error(s"Exception on storage request\n${error.printableStackTrace}")
   
   val routes =
     createRoute <+>

@@ -9,6 +9,7 @@ import com.vportnov.locations.api.HttpService
 
 import com.vportnov.locations.api.GrpcStorage
 
+
 final class HttpServer[F[_]: Async](settings: Config.Settings):
   def run: F[ExitCode] = server
 
