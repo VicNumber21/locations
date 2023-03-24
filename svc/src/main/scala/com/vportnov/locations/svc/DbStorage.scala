@@ -1,6 +1,6 @@
 package com.vportnov.locations.svc
 
-import cats.effect.Sync
+import cats.effect.{ Sync, Async }
 import cats.data.NonEmptyList
 import cats.implicits._
 
@@ -8,10 +8,11 @@ import doobie._
 import doobie.implicits._
 import doobie.postgres.implicits._
 
+import com.vportnov.locations.svc.Config
 import com.vportnov.locations.model._
 
 
-final class DbStorage[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
+final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
   import DbStorage._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
     sql.insert.locations(locations)
@@ -40,6 +41,8 @@ final class DbStorage[F[_]: Sync](tx: Transactor[F]) extends Storage[F]:
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)
+
+  private val tx = Transactor.fromDriverManager[F](db.driver, db.userUrl, db.user.login, db.user.password)
   
 
 object DbStorage:
