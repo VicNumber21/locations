@@ -31,7 +31,7 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
       .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
       .transact(tx)
 
-  def deleteLocations(ids: Location.Ids): F[Int] =
+  override def deleteLocations(ids: Location.Ids): F[Int] =
     if ids.isEmpty
       then Sync[F].raiseError(new IllegalArgumentException("Ids list must not be empty"))
       else
@@ -64,7 +64,7 @@ object DbStorage:
       def stats(period: Period): Query0[Location.Stats] =
         (
           fr"SELECT" ++
-            fr"CAST(location_created AS DATE) AS created_date," ++
+            fr"CAST(CAST(location_created AS DATE) AS TIMESTAMP) AS created_date," ++
             fr"COUNT(location_created) AS created_locations" ++
           fr"FROM locations" ++
           Fragments.whereAndOpt(byPeriod(period):_*) ++
@@ -125,5 +125,3 @@ object DbStorage:
           Fragments.whereAndOpt(select.byIds(ids))
         )
           .update
-
-

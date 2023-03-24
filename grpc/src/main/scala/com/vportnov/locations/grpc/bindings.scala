@@ -3,11 +3,9 @@ package com.vportnov.locations.grpc.bindings
 import com.google.protobuf.timestamp.Timestamp
 import com.google.protobuf.ByteString
 
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.{ LocalDateTime, ZoneOffset }
 
-import com.vportnov.locations.model
-import com.vportnov.locations.grpc
+import com.vportnov.locations.{ model, grpc }
 
 
 
@@ -39,12 +37,12 @@ extension (period: grpc.Period)
 extension (stats: model.Location.Stats)
   def toMessage: grpc.LocationStats =
     grpc.LocationStats()
-      .withDate(stats.date.atTime(0, 0).toMessage)
+      .withDate(stats.date.toMessage)
       .withCount(stats.count)
 
 extension (stats: grpc.LocationStats)
   def toModel: model.Location.Stats =
-    model.Location.Stats(stats.getDate.toModel.toLocalDate, stats.count)
+    model.Location.Stats(stats.getDate.toModel, stats.count)
 
 extension (decimal: BigDecimal)
   def toMessage: grpc.BigDecimal =

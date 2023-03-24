@@ -24,6 +24,4 @@ object Location:
   def apply(id: Id, longitude: Longitude, latitude: Latitude) =
     WithoutCreatedField(id, longitude, latitude)
 
-  // TODO rework to LocalDateTime
-  import java.time.LocalDate
-  final case class Stats(date: LocalDate, count: Int)
+  final case class Stats(date: LocalDateTime, count: Int)
