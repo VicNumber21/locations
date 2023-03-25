@@ -29,7 +29,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val createRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.createEndpoint
-        .serverLogicSuccess(request => response(storage.createLocations(request.map(_.toLocation))))
+        .serverLogicSuccess(request => response(storage.createLocations(request.map(_.toLocation)), LocationResponse.from))
     )
   
   val createOneRoute: HttpRoutes[F] =
@@ -41,7 +41,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val getRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.getEndpoint
-        .serverLogicSuccess((period, ids) => response(storage.getLocations(period, ids)))
+        .serverLogicSuccess((period, ids) => response(storage.getLocations(period, ids), LocationResponse.from))
     )
 
   val getOneRoute: HttpRoutes[F] =
@@ -53,7 +53,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val updateRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.updateEndpoint
-        .serverLogicSuccess(request => response(storage.updateLocations(request.map(_.toLocation))))
+        .serverLogicSuccess(request => response(storage.updateLocations(request.map(_.toLocation)), LocationResponse.from))
     )
   
   val updateOneRoute: HttpRoutes[F] =
@@ -77,11 +77,12 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val statsRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.statsEndpoint
-        .serverLogicSuccess(period => response(storage.locationStats(period)))
+        .serverLogicSuccess(period => response(storage.locationStats(period), LocationStats.from))
     )
-  
-  private def response[O](stream: Stream[F, O])(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
+
+  private def response[SR, O](stream: Stream[F, SR], mapper: SR => O)(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
+      .map(mapper)
       .map(_.asJson.noSpaces)
       .catchError { error =>
         ServerError(error.getMessage()).asJson.noSpaces

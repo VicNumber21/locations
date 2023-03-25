@@ -2,7 +2,7 @@ package com.vportnov.locations.api
 
 import scala.util.matching.Regex
 import scala.math.BigDecimal
-import java.time.LocalDateTime
+import java.time.{ ZonedDateTime, ZoneOffset }
 
 import sttp.tapir._
 import sttp.tapir.Schema
@@ -32,12 +32,11 @@ object types:
     @validate(meta.latitude.validator)
     latitude: model.Location.Latitude,
 
-    // TODO ZondedDateTime should be here then it should be converted to LocalDateTime at UTC
     @description(meta.created.optional.description)
     @encodedExample(meta.created.optional.example)
-    created: Option[LocalDateTime] = None
+    created: Option[ZonedDateTime] = None
   ):
-    def toLocation = model.Location.WithOptionalCreatedField(id, longitude, latitude, created)
+    def toLocation = model.Location.WithOptionalCreatedField(id, longitude, latitude, created.map(_.toLocalDateTime))
 
   final case class LocationCreateOneRequest(
     @description(meta.longitude.description)
@@ -52,9 +51,9 @@ object types:
 
     @description(meta.created.optional.description)
     @encodedExample(meta.created.optional.example)
-    created: Option[LocalDateTime] = None
+    created: Option[ZonedDateTime] = None
   ):
-    def toLocation(id: model.Location.Id) = model.Location.WithOptionalCreatedField(id, longitude, latitude, created)
+    def toLocation(id: model.Location.Id) = model.Location.WithOptionalCreatedField(id, longitude, latitude, created.map(_.toLocalDateTime))
 
   final case class LocationUpdateRequest(
     @description(meta.id.description)
@@ -106,23 +105,26 @@ object types:
 
     @description(meta.created.required.description)
     @encodedExample(meta.created.required.example)
-    created: LocalDateTime
+    created: ZonedDateTime
   )
 
   object LocationResponse:
-    def from(l: model.Location.WithCreatedField) = LocationResponse(l.id, l.longitude, l.latitude, l.created)
+    def from(l: model.Location.WithCreatedField) = LocationResponse(l.id, l.longitude, l.latitude, l.created.atZone(ZoneOffset.UTC))
 
 
   @description(meta.stats.description)
   final case class LocationStats(
     @description(meta.date.description)
     @encodedExample(meta.date.example)
-    date: LocalDateTime,
+    date: ZonedDateTime,
 
     @description(meta.count.description)
     @encodedExample(meta.count.example)
     count: Int
   )
+
+  object LocationStats:
+    def from(s: model.Location.Stats) = LocationStats(s.date.atZone(ZoneOffset.UTC), s.count)
 
   // TODO improve error response
   case class ServerError(code: Int, message: String)
@@ -160,14 +162,14 @@ object types:
         val example = Some(created.required.example)
       object required:
         val description = "UTC timestamp in ISO format when location created."
-        val example = LocalDateTime.now()
+        val example = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC)
 
     object stats:
       val description = "An object representing statistic of locations created in particular date."
 
     object date:
       val description = "UTC timestamp in ISO format when location created rounded to a date."
-      val example = LocalDateTime.now().toLocalDate().atTime(0, 0)
+      val example = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC)
 
     object count:
       val description = "Count of locations created at particular date."
