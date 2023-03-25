@@ -62,7 +62,7 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
   override def locationStats(period: model.Period): LocationStatsStream[F] =
     (for
       grpcApi <- grpcApiStream
-      stats <- grpcApi.locationStats(new grpc.Period(), new Metadata)
+      stats <- grpcApi.locationStats(period.toMessage, new Metadata)
     yield stats.toModel)
       .onFinalize(info"locationStats stream is done")
       .onError(logStreamError("Exception on request locationStats"))
