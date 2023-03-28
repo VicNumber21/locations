@@ -14,7 +14,7 @@ object Id:
   def apply(v: Id.Underlying): Id = new Id(v)
 
   object meta:
-    val description = "Alphanameric id of location."
+    val description = "Alphanumeric id of location."
     val example = "location123"
     val underlyingValidator = Validator.nonEmptyString[Id.Underlying].and(Validator.maxLength(255)).and(Validator.pattern("^[a-zA-Z0-9]+$"))
     val validator = Validator.Mapped[Id, Id.Underlying](underlyingValidator, _.v)
