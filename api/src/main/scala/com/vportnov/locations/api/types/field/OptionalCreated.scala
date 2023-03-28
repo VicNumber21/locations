@@ -5,7 +5,6 @@ import io.circe.{ Encoder, Decoder }
 import sttp.tapir.Schema
 
 import com.vportnov.locations.model
-
 import com.vportnov.locations.api.types.field.Created
 
 final case class OptionalCreated(v: OptionalCreated.Underlying):

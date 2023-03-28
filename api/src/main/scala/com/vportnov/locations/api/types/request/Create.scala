@@ -33,3 +33,4 @@ object Create:
   given Decoder[Location] = deriveDecoder[Location]
 
   val body = jsonBody[List[Create.Location]].mapTo[Create]
+  val input = body

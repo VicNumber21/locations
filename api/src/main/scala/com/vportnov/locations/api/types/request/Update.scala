@@ -32,3 +32,4 @@ object Update:
   given Decoder[Location] = deriveDecoder[Location]
 
   val body = jsonBody[List[Update.Location]].mapTo[Update]
+  val input = body

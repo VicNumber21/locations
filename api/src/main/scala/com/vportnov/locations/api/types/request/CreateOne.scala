@@ -9,10 +9,9 @@ import com.vportnov.locations.api.types.field.{ Id, Longitude, Latitude, Optiona
 import com.vportnov.locations.model
 
 
-// TODO move id to field.Id
-final case class CreateOne(id: model.Location.Id, data: CreateOne.LocationData):
+final case class CreateOne(id: Id, data: CreateOne.LocationData):
   def toModel: model.Location.WithOptionalCreatedField =
-    model.Location.WithOptionalCreatedField(id, data.longitude.v, data.latitude.v, data.created.toModel)
+    model.Location.WithOptionalCreatedField(id.v, data.longitude.v, data.latitude.v, data.created.toModel)
 
 object CreateOne:
   final case class LocationData(longitude: Longitude, latitude: Latitude, created: OptionalCreated)
@@ -33,3 +32,4 @@ object CreateOne:
   given Decoder[LocationData] = deriveDecoder[LocationData]
 
   val body = jsonBody[CreateOne.LocationData]
+  val input = Id.asPath().and(body).mapTo[CreateOne]

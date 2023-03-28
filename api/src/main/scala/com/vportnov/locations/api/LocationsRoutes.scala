@@ -15,13 +15,13 @@ import io.circe.syntax._
 import sttp.capabilities.fs2.Fs2Streams
 import fs2.Stream
 
-import com.vportnov.locations.model
-import com.vportnov.locations.api.types.{ field, request, response, given }
+import com.vportnov.locations.model.StorageExt
+import com.vportnov.locations.api.types.{ field, request, response }
 import com.vportnov.locations.api.tapir.fs2stream.json._
 import com.vportnov.locations.utils.fs2stream.syntax._
 
 
-final class LocationsRoutes[F[_]: Async](storage: model.StorageExt[F]) extends Http4sDsl[F]:
+final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
   val createRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.createEndpoint
@@ -37,13 +37,13 @@ final class LocationsRoutes[F[_]: Async](storage: model.StorageExt[F]) extends H
   val getRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.getEndpoint
-        .serverLogicSuccess(request => reply(storage.getLocations(request.period, request.ids), response.Location.from))
+        .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from))
     )
 
   val getOneRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.getOneEndpoint
-        .serverLogic(id => reply(storage.getLocation(id), response.Location.from, notFoundError))
+        .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError))
     )
 
   val updateRoute: HttpRoutes[F] =
@@ -61,19 +61,19 @@ final class LocationsRoutes[F[_]: Async](storage: model.StorageExt[F]) extends H
   val deleteRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.deleteEndpoint
-        .serverLogic(ids => reply(storage.deleteLocations(ids), deleteSuccess, commonErrors))
+        .serverLogic(request => reply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
     )
 
   val deleteOneRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.deleteOneEndpoint
-        .serverLogic(id => reply(storage.deleteLocation(id), deleteSuccess, commonErrors))
+        .serverLogic(request => reply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
     )
   
   val statsRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.statsEndpoint
-        .serverLogicSuccess(period => reply(storage.locationStats(period), response.Stats.from))
+        .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from))
     )
 
   private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O)(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
@@ -122,20 +122,6 @@ final class LocationsRoutes[F[_]: Async](storage: model.StorageExt[F]) extends H
     statsRoute
 
 object LocationsRoutes:
-  val periodQuery: EndpointInput[model.Period] =
-    query[model.Location.OptionalTimestamp]("from")
-    .and(query[model.Location.OptionalTimestamp]("to"))
-    .mapTo[model.Period]
-
-  val idsQuery: EndpointInput[model.Location.Ids] =
-    query[model.Location.Ids]("id")
-      .validateIterable(field.Id.meta.underlyingValidator)
-  
-  // TODO move path and query to fileds?
-  def idPath: EndpointInput[field.Id.Underlying] =
-    path[field.Id.Underlying]("id")
-      .validate(field.Id.meta.underlyingValidator)
-
   val baseEndpoint = endpoint
     .in("api" / "v1.0" / "locations")
     .errorOut(statusCode) // TODO add json error as ServerError
@@ -144,73 +130,67 @@ object LocationsRoutes:
     .post
     .description("Create locations in batch.")
     .tag("Create")
-    .in(request.Create.body)
+    .in(request.Create.input)
     .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
     .out(statusCode(StatusCode.Created))
-
-  val idPathAndCreateOneBody = idPath.and(request.CreateOne.body).mapTo[request.CreateOne]
 
   val createOneEndpoint: PublicEndpoint[request.CreateOne, StatusCode, response.Location, Any] = baseEndpoint
     .post
     .description("Create a single location.")
     .tag("Create")
-    .in(idPathAndCreateOneBody)
+    .in(request.CreateOne.input)
     .out(jsonBody[response.Location])
     .out(statusCode(StatusCode.Created))
 
-  val periodAndIdsQuery = periodQuery.and(idsQuery).mapTo[request.Get]
-  
   def getEndpoint[F[_]]: PublicEndpoint[request.Get, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .get
     .description("Get list of locations: all, particular ids or created before or after or between dates.")
     .tag("Get")
-    .in(periodAndIdsQuery)
+    .in(request.Get.input)
     .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
 
-  val getOneEndpoint: PublicEndpoint[model.Location.Id, StatusCode, response.Location, Any] = baseEndpoint
+  val getOneEndpoint: PublicEndpoint[request.GetOne, StatusCode, response.Location, Any] = baseEndpoint
     .get
     .description("Get particular location by given id.")
     .tag("Get")
-    .in(idPath) // TODO make it request.Get.input here and similar in other endpoints?
+    .in(request.GetOne.input)
     .out(jsonBody[response.Location])
 
   def updateEndpoint[F[_]]: PublicEndpoint[request.Update, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .put
     .description("Update longitude and latitude of given location in batch.")
     .tag("Update")
-    .in(request.Update.body)
+    .in(request.Update.input)
     .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
-
-  val idPathAndUpdateOneBody = idPath.and(request.UpdateOne.body).mapTo[request.UpdateOne]
 
   val updateOneEndpoint: PublicEndpoint[request.UpdateOne, StatusCode, response.Location, Any] = baseEndpoint
     .put
     .description("Update longitude and latitude of particular location.")
     .tag("Update")
-    .in(idPathAndUpdateOneBody)
+    .in(request.UpdateOne.input)
     .out(jsonBody[response.Location])
 
-  val deleteEndpoint: PublicEndpoint[model.Location.Ids, StatusCode, ResponseCode, Any] = baseEndpoint
+  val deleteEndpoint: PublicEndpoint[request.Delete, StatusCode, ResponseCode, Any] = baseEndpoint
     .delete
     .description("Delete list of given locations in batch.")
     .tag("Delete")
-    .in(idsQuery)
+    .in(request.Delete.input)
     .out(deleteSuccessStatusCodes)
 
-  val deleteOneEndpoint: PublicEndpoint[model.Location.Id, StatusCode, ResponseCode, Any] = baseEndpoint
+  val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, StatusCode, ResponseCode, Any] = baseEndpoint
     .delete
     .description("Delete particular location by given id.")
     .tag("Delete")
-    .in(idPath)
+    .in(request.DeleteOne.input)
     .out(deleteSuccessStatusCodes)
 
-  def statsEndpoint[F[_]]: PublicEndpoint[model.Period, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
+  def statsEndpoint[F[_]]: PublicEndpoint[request.Stats, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .get
     .description("Get statistic about count of created locations per day." ++
                  " Statistic could be requested for all locations or created before or after or between dates.")
     .tag("Statistics")
     .in("-" / "stats")
-    .in(periodQuery)
+    .in(request.Stats.input)
     .out(fs2StreamJsonBodyUTF8[F, List[response.Stats]])
   
   // TODO implement success / error status codes like this

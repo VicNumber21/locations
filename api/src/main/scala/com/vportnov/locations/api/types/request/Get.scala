@@ -1,6 +1,9 @@
 package com.vportnov.locations.api.types.request
 
+import com.vportnov.locations.api.types.field.{ Id, Ids, Period }
 
-import com.vportnov.locations.model
 
-final case class Get(period: model.Period, ids: model.Location.Ids)
+final case class Get(period: Period, ids: Ids)
+object Get:
+  val input = Period.asQuery().and(Id.asQuery()).mapTo[Get]
+  
