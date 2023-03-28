@@ -19,8 +19,8 @@ object Date:
     val example = ZonedDateTime.now().toLocalDate().atTime(0, 0).atZone(ZoneOffset.UTC)
 
   given Schema[Date] = Schema.schemaForZonedDateTime.as[Date]
-    .description(Date.meta.description)
-    .encodedExample(Date.meta.example)
+    .description(meta.description)
+    .encodedExample(meta.example)
 
   given Encoder[Date] = Encoder.encodeZonedDateTime.contramap(_.v)
   given Decoder[Date] = Decoder.decodeZonedDateTime.map(Date(_))

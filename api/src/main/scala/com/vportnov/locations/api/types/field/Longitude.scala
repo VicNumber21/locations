@@ -20,9 +20,9 @@ object Longitude:
     val validator = Validator.Mapped[Longitude, Longitude.Underlying](underlyingValidator, _.v)
 
   given Schema[Longitude] = Schema.schemaForBigDecimal.as[Longitude]
-    .description(Longitude.meta.description)
-    .encodedExample(Longitude.meta.example)
-    .validate(Longitude.meta.validator)
+    .description(meta.description)
+    .encodedExample(meta.example)
+    .validate(meta.validator)
 
   given Encoder[Longitude] = Encoder.encodeBigDecimal.contramap(_.v)
   given Decoder[Longitude] = Decoder.decodeBigDecimal.map(Longitude(_))

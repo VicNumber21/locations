@@ -21,8 +21,8 @@ object OptionalCreated:
     val example = Some(Created.meta.example)
 
   given Schema[OptionalCreated] = Schema.schemaForOption[ZonedDateTime].as[OptionalCreated]
-    .description(OptionalCreated.meta.description)
-    .encodedExample(OptionalCreated.meta.example)
+    .description(meta.description)
+    .encodedExample(meta.example)
 
   given Encoder[OptionalCreated] = Encoder.encodeOption[ZonedDateTime].contramap(_.v)
   given Decoder[OptionalCreated] = Decoder.decodeOption[ZonedDateTime].map(OptionalCreated(_))

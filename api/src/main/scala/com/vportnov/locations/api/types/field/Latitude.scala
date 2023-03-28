@@ -20,9 +20,9 @@ object Latitude:
     val validator = Validator.Mapped[Latitude, Latitude.Underlying](underlyingValidator, _.v)
 
   given Schema[Latitude] = Schema.schemaForBigDecimal.as[Latitude]
-    .description(Latitude.meta.description)
-    .encodedExample(Latitude.meta.example)
-    .validate(Latitude.meta.validator)
+    .description(meta.description)
+    .encodedExample(meta.example)
+    .validate(meta.validator)
 
   given Encoder[Latitude] = Encoder.encodeBigDecimal.contramap(_.v)
   given Decoder[Latitude] = Decoder.decodeBigDecimal.map(Latitude(_))

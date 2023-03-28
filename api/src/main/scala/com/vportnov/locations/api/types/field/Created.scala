@@ -22,8 +22,8 @@ object Created:
     val example = ZonedDateTime.now().withZoneSameInstant(ZoneOffset.UTC)
 
   given Schema[Created] = Schema.schemaForZonedDateTime.as[Created]
-    .description(Created.meta.description)
-    .encodedExample(Created.meta.example)
+    .description(meta.description)
+    .encodedExample(meta.example)
 
   given Encoder[Created] = Encoder.encodeZonedDateTime.contramap(_.v)
   given Decoder[Created] = Decoder.decodeZonedDateTime.map(Created(_))

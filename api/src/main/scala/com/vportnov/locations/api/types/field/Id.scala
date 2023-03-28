@@ -20,9 +20,9 @@ object Id:
     val validator = Validator.Mapped[Id, Id.Underlying](underlyingValidator, _.v)
 
   given Schema[Id] = Schema.schemaForString.as[Id]
-    .description(Id.meta.description)
-    .encodedExample(Id.meta.example)
-    .validate(Id.meta.validator)
+    .description(meta.description)
+    .encodedExample(meta.example)
+    .validate(meta.validator)
 
   given Encoder[Id] = Encoder.encodeString.contramap(_.v)
   given Decoder[Id] = Decoder.decodeString.map(Id(_))
