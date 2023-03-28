@@ -18,12 +18,12 @@ extension (timestamp: Timestamp)
   def toModel: LocalDateTime =
     LocalDateTime.ofEpochSecond(timestamp.seconds, timestamp.nanos, ZoneOffset.UTC)
 
-extension (timestamp: model.OptionalDateTime)
+extension (timestamp: model.Location.OptionalTimestamp)
   def toMessage: Option[Timestamp] =
     timestamp.map(_.toMessage)
 
 extension (timestamp: Option[Timestamp])
-  def toModel: model.OptionalDateTime =
+  def toModel: model.Location.OptionalTimestamp =
     timestamp.map(_.toModel)
 
 extension (period: model.Period)

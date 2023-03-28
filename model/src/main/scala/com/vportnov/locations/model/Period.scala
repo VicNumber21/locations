@@ -4,6 +4,5 @@ package com.vportnov.locations.model
 import java.time.LocalDateTime
 
 
-type OptionalDateTime = Option[LocalDateTime]
-final case class Period(from: OptionalDateTime, to: OptionalDateTime):
+final case class Period(from: Location.OptionalTimestamp, to: Location.OptionalTimestamp):
   def isEmpty: Boolean = from.isEmpty && to.isEmpty
