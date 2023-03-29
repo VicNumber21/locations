@@ -79,7 +79,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       .map(mapper)
       .map(_.asJson.noSpaces)
       .catchError { error =>
-        response.ServerError(error.getMessage()).asJson.noSpaces
+        response.Status.InternalServerError(error.getMessage()).asJson.noSpaces
       }
       .toJsonArray
       .through(fs2.text.utf8.encode)
@@ -90,10 +90,10 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       unpacked <- storageResponse.attempt
     yield unpacked.map(mapper).left.map(errorMapper)
 
-  private def deleteSuccess(count: Int): LocationsRoutes.ResponseCode = count match
-    case 0 => LocationsRoutes.ResponseCode.Ok
-    case n if n > 0 => LocationsRoutes.ResponseCode.NoContent
-    case strange => LocationsRoutes.ResponseCode.InternalServerError
+  private def deleteSuccess(count: Int): response.Delete = count match
+    case 0 => response.Status.Ok()
+    case n if n > 0 => response.Status.NoContent()
+    case strange => response.Status.InternalServerError("Count could not be less than 0")
   
   private def notFoundError(error: Throwable) = error match
     case _ : java.util.NoSuchElementException => StatusCode.NotFound
@@ -122,7 +122,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
 object LocationsRoutes:
   val baseEndpoint = endpoint
     .in("api" / "v1.0" / "locations")
-    .errorOut(statusCode) // TODO add json error as ServerError
+    .errorOut(statusCode) // TODO add json error as Status
 
   def createEndpoint[F[_]]: PublicEndpoint[request.Create, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .post
@@ -168,19 +168,19 @@ object LocationsRoutes:
     .in(request.UpdateOne.input)
     .out(response.Location.body.json)
 
-  val deleteEndpoint: PublicEndpoint[request.Delete, StatusCode, ResponseCode, Any] = baseEndpoint
+  val deleteEndpoint: PublicEndpoint[request.Delete, StatusCode, response.Delete, Any] = baseEndpoint
     .delete
     .description("Delete list of given locations in batch.")
     .tag("Delete")
     .in(request.Delete.input)
-    .out(deleteSuccessStatusCodes)
+    .out(response.Delete.output)
 
-  val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, StatusCode, ResponseCode, Any] = baseEndpoint
+  val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, StatusCode, response.Delete, Any] = baseEndpoint
     .delete
     .description("Delete particular location by given id.")
     .tag("Delete")
     .in(request.DeleteOne.input)
-    .out(deleteSuccessStatusCodes)
+    .out(response.Delete.output)
 
   def statsEndpoint[F[_]]: PublicEndpoint[request.Stats, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .get
@@ -190,28 +190,6 @@ object LocationsRoutes:
     .in("-" / "stats")
     .in(request.Stats.input)
     .out(response.Stats.body.stream)
-  
-  // TODO implement success / error status codes like this
-  // TODO it does not work as expected, it does not show code returned from serverLogic
-  // https://tapir.softwaremill.com/en/latest/endpoint/oneof.html?highlight=oneOf#oneof-outputs
-  // IT DOES NOT WORK VIA ENUM, but works as below
-  // Most probably it makes sense to implement subtypes of ServerError (ServerResponse better?) and pass them as JSON on
-  // particular error as well as map the class to needed status code
-  // It also looks like response.Location must be derived from the same thing to be able to map 200 on it
-  sealed trait ResponseCode
-  object ResponseCode:
-    case object Ok extends ResponseCode
-    case object NoContent extends ResponseCode
-    case object InternalServerError extends ResponseCode
-
-  val test = baseEndpoint.out(deleteSuccessStatusCodes)
-
-  def deleteSuccessStatusCodes =
-    oneOf[ResponseCode](
-      oneOfVariant(statusCode(StatusCode.NoContent).and(emptyOutputAs(ResponseCode.NoContent).description("Deleted successfuly."))),
-      oneOfVariant(statusCode(StatusCode.Ok).and(emptyOutputAs(ResponseCode.Ok).description("Not found so already removed."))),
-      oneOfDefaultVariant(statusCode(StatusCode.InternalServerError).and(emptyOutputAs(ResponseCode.InternalServerError).description("Generic server error.")))
-    )
   
   val endpoints: List[AnyEndpoint] =
     List(
