@@ -9,15 +9,13 @@ import org.http4s.HttpRoutes
 import sttp.tapir._
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.model.StatusCode
-import sttp.tapir.json.circe._
 import io.circe.syntax._
 
 import sttp.capabilities.fs2.Fs2Streams
 import fs2.Stream
 
 import com.vportnov.locations.model.StorageExt
-import com.vportnov.locations.api.types.{ field, request, response }
-import com.vportnov.locations.api.tapir.fs2stream.json._
+import com.vportnov.locations.api.types.{ request, response }
 import com.vportnov.locations.utils.fs2stream.syntax._
 
 
@@ -131,7 +129,7 @@ object LocationsRoutes:
     .description("Create locations in batch.")
     .tag("Create")
     .in(request.Create.input)
-    .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
+    .out(response.Location.body.stream)
     .out(statusCode(StatusCode.Created))
 
   val createOneEndpoint: PublicEndpoint[request.CreateOne, StatusCode, response.Location, Any] = baseEndpoint
@@ -139,7 +137,7 @@ object LocationsRoutes:
     .description("Create a single location.")
     .tag("Create")
     .in(request.CreateOne.input)
-    .out(jsonBody[response.Location])
+    .out(response.Location.body.json)
     .out(statusCode(StatusCode.Created))
 
   def getEndpoint[F[_]]: PublicEndpoint[request.Get, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
@@ -147,28 +145,28 @@ object LocationsRoutes:
     .description("Get list of locations: all, particular ids or created before or after or between dates.")
     .tag("Get")
     .in(request.Get.input)
-    .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
+    .out(response.Location.body.stream)
 
   val getOneEndpoint: PublicEndpoint[request.GetOne, StatusCode, response.Location, Any] = baseEndpoint
     .get
     .description("Get particular location by given id.")
     .tag("Get")
     .in(request.GetOne.input)
-    .out(jsonBody[response.Location])
+    .out(response.Location.body.json)
 
   def updateEndpoint[F[_]]: PublicEndpoint[request.Update, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .put
     .description("Update longitude and latitude of given location in batch.")
     .tag("Update")
     .in(request.Update.input)
-    .out(fs2StreamJsonBodyUTF8[F, List[response.Location]])
+    .out(response.Location.body.stream)
 
   val updateOneEndpoint: PublicEndpoint[request.UpdateOne, StatusCode, response.Location, Any] = baseEndpoint
     .put
     .description("Update longitude and latitude of particular location.")
     .tag("Update")
     .in(request.UpdateOne.input)
-    .out(jsonBody[response.Location])
+    .out(response.Location.body.json)
 
   val deleteEndpoint: PublicEndpoint[request.Delete, StatusCode, ResponseCode, Any] = baseEndpoint
     .delete
@@ -191,7 +189,7 @@ object LocationsRoutes:
     .tag("Statistics")
     .in("-" / "stats")
     .in(request.Stats.input)
-    .out(fs2StreamJsonBodyUTF8[F, List[response.Stats]])
+    .out(response.Stats.body.stream)
   
   // TODO implement success / error status codes like this
   // TODO it does not work as expected, it does not show code returned from serverLogic

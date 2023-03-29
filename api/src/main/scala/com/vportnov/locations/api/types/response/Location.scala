@@ -3,7 +3,9 @@ package com.vportnov.locations.api.types.response
 import io.circe.{ Encoder, Decoder }
 import io.circe.generic.semiauto._
 import sttp.tapir.Schema
+import sttp.tapir.json.circe._
 
+import com.vportnov.locations.api.tapir.fs2stream.json._
 import com.vportnov.locations.api.types.field.{ Id, Longitude, Latitude, Created }
 import com.vportnov.locations.model
 
@@ -27,3 +29,7 @@ object Location:
 
   given Encoder[Location] = deriveEncoder[Location]
   given Decoder[Location] = deriveDecoder[Location]
+
+  object body:
+    val json = jsonBody[Location]
+    def stream[F[_]] = fs2StreamJsonBodyUTF8[F, List[Location]]
