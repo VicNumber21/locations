@@ -8,7 +8,7 @@ RUN $JAVA_HOME/bin/jlink \
   --output /javaruntime
 
 
-FROM alpine
+FROM alpine:3.17.3
 ENV JAVA_HOME=/opt/java/openjdk
 ENV PATH "${JAVA_HOME}/bin:${PATH}"
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
