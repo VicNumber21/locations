@@ -5,7 +5,7 @@ import io.circe.generic.semiauto._
 import sttp.tapir.Schema
 import sttp.tapir.json.circe._
 
-import com.vportnov.locations.api.tapir.fs2stream.json._
+import com.vportnov.locations.api.types.json._
 import com.vportnov.locations.api.types.field.{ Id, Longitude, Latitude, Created }
 import com.vportnov.locations.model
 
