@@ -1,4 +1,4 @@
-package com.vportnov.locations.model
+package com.vportnov.locations.utils
 
 import java.util.UUID
 
