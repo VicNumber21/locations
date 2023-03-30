@@ -12,66 +12,49 @@ import io.grpc._
 import com.vportnov.locations.api.Config.Address
 import com.vportnov.locations.model
 import com.vportnov.locations.utils.fs2stream.syntax._
-import com.vportnov.locations.grpc.LocationServiceFs2Grpc
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
-import com.vportnov.locations.utils.LoggingIO
 
 
-final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.StorageExt[F] with LoggingIO[F]:
+final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.StorageExt[F]:
   override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] =
-    (for
+    for
       grpcApi <- grpcApiStream
       location <- grpcApi.createLocations(locations.toMessage, new Metadata)
-    yield location.toLocationWithCreatedField)
-      .onFinalize(info"createLocations stream is done")
-      .onError(logStreamError("Exception on request createLocations"))
+    yield location.toLocationWithCreatedField
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
-    (for
+    for
       grpcApi <- grpcApiStream
       query = grpc.Query().withPeriod(period.toMessage).withIds(ids)
       location <- grpcApi.getLocations(query, new Metadata)
-    yield location.toLocationWithCreatedField)
-      .onFinalize(info"getLocations stream is done")
-      .onError(logStreamError("Exception on request getLocations"))
+    yield location.toLocationWithCreatedField
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
-    (for
+    for
       grpcApi <- grpcApiStream
       location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
-    yield location.toLocationWithCreatedField)
-      .onFinalize(info"updateLocations stream is done")
-      .onError(logStreamError("Exception on request updateLocations"))
+    yield location.toLocationWithCreatedField
 
   override def deleteLocations(ids: model.Location.Ids): F[Int] =
     val countStream: Stream[F, Int] =
-      (for
+      for
         grpcApi <- grpcApiStream
         count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
-      yield count.count)
-        .onFinalize(info"deleteLocations stream is done")
-        .onError(logStreamError("Exception on request deleteLocations"))
-
-    for
-      count <- countStream.firstEntry
-      _ <- if count < 0 then error"Strange but count is less than 0 (count = ${count})" else ().pure[F]
-    yield count
-  end deleteLocations
+      yield count.count
+    countStream.firstEntry // TODO remove import com.vportnov.locations.utils.fs2stream.syntax._ if this is removed
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
-    (for
+    for
       grpcApi <- grpcApiStream
       stats <- grpcApi.locationStats(period.toMessage, new Metadata)
-    yield stats.toModel)
-      .onFinalize(info"locationStats stream is done")
-      .onError(logStreamError("Exception on request locationStats"))
+    yield stats.toModel
 
-  private val grpcClient: Resource[F, LocationServiceFs2Grpc[F, Metadata]] =
+  private val grpcClient: Resource[F, grpc.LocationServiceFs2Grpc[F, Metadata]] =
     NettyChannelBuilder
       .forAddress(grpcAddress.host.toString, grpcAddress.port.value)
       .usePlaintext()
       .resource[F]
-      .flatMap(LocationServiceFs2Grpc.stubResource(_))
+      .flatMap(grpc.LocationServiceFs2Grpc.stubResource(_))
     
-  private def grpcApiStream: Stream[F, LocationServiceFs2Grpc[F, Metadata]] = Stream.resource(grpcClient)
+  private def grpcApiStream: Stream[F, grpc.LocationServiceFs2Grpc[F, Metadata]] = Stream.resource(grpcClient)

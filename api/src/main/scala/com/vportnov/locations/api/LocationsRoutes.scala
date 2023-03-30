@@ -17,9 +17,10 @@ import fs2.Stream
 import com.vportnov.locations.model.StorageExt
 import com.vportnov.locations.api.types.{ request, response }
 import com.vportnov.locations.utils.fs2stream.syntax._
+import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
 
-final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F]:
+final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F] with LoggingIO[F]:
   val createRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.createEndpoint
@@ -78,29 +79,35 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
     stream
       .map(mapper)
       .map(_.asJson.noSpaces)
+      .logWhenDone
       .catchError { error =>
         response.Status.InternalServerError(error.getMessage()).asJson.noSpaces
       }
       .toJsonArray
       .through(fs2.text.utf8.encode)
       .pure[F]
+      .logWhenDone
 
   private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => StatusCode): F[Either[StatusCode, O]] =
-    for
-      unpacked <- storageResponse.attempt
-    yield unpacked.map(mapper).left.map(errorMapper)
+    val result = for
+      unpacked <- storageResponse
+        .map(mapper)
+        .logWhenDone
+        .attempt
+    yield unpacked.left.map(errorMapper)
+    result.logWhenDone
 
   private def deleteSuccess(count: Int): response.Delete = count match
     case 0 => response.Status.Ok()
     case n if n > 0 => response.Status.NoContent()
-    case strange => response.Status.InternalServerError("Count could not be less than 0")
+    case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
   
   private def notFoundError(error: Throwable) = error match
-    case _ : java.util.NoSuchElementException => StatusCode.NotFound
+    case error if ServerError.fromCause(error).kind == ServerError.Kind.NoSuchElement => StatusCode.NotFound
     case _ => commonErrors(error)
 
   private def conflictError(error: Throwable) = error match
-    case _ : java.util.NoSuchElementException => StatusCode.Conflict
+    case error if ServerError.fromCause(error).kind == ServerError.Kind.NoSuchElement => StatusCode.Conflict
     case _ => commonErrors(error)
 
   private def commonErrors(error: Throwable) =

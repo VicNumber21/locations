@@ -7,7 +7,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import fs2.Stream
 
-import com.vportnov.locations.utils.ServerError
+import com.vportnov.locations.utils.ServerError.syntax._
 
 
 trait LoggingIO[F[_]: Sync]:
@@ -22,12 +22,12 @@ trait LoggingIO[F[_]: Sync]:
       val parent = Thread.currentThread().getStackTrace()(4)
       stream
         .onFinalize(log.info(s"${parent.getMethodName()} stream is done"))
-        .handleError(error => throw ServerError.Internal(error))
+        .failureToServerError
         .onError(logStreamError(s"Exception in ${parent}"))
 
   extension [T] (io: F[T])(using log: Logger[F])
     def logWhenDone: F[T] =
       val parent = Thread.currentThread().getStackTrace()(4)
       io
-        .handleError(error => throw ServerError.Internal(error))
+        .failureToServerError
         .onError(error => log.error(error)(s"Exception in ${parent}"))
