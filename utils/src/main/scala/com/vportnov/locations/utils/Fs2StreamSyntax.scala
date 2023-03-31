@@ -13,14 +13,6 @@ object syntax:
       yield list.head
 
   extension [F[_]: Async, O] (stream: Stream[F, String])
-    def catchError(errorMapper: Throwable => String): Stream[F, String] =
-      stream
-        .attempt
-        .map {
-          case Right(s) => s
-          case Left(e) => errorMapper(e)
-        }
-
     def toJsonArray: Stream[F, String] =
       val prefix = Stream.eval("[".pure[F])
       val suffix = Stream.eval("]".pure[F])

@@ -80,7 +80,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
       .map(mapper)
       .map(_.asJson.noSpaces)
       .logWhenDone
-      .catchError { error =>
+      .recover { error =>
         response.Status.InternalServerError(error.getMessage()).asJson.noSpaces
       }
       .toJsonArray
