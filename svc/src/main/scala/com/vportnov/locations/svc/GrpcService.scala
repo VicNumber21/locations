@@ -28,10 +28,10 @@ final class GrpcService[F[_]: Async](storage: model.Storage[F]) extends grpc.Loc
       .map(_.toMessage)
       .logWhenDone
 
-  override def deleteLocations(ids: grpc.Ids, ctx: Metadata): Stream[F, grpc.Count] =
-    val count = storage.deleteLocations(ids.toModel)
+  override def deleteLocations(ids: grpc.Ids, ctx: Metadata): F[grpc.CountReply] =
+    storage.deleteLocations(ids.toModel)
       .logWhenDone
-    Stream.eval(count).map(grpc.Count(_))
+      .toMessage
 
   override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStats] =
     storage.locationStats(period.toModel)

@@ -3,9 +3,13 @@ package com.vportnov.locations.grpc.bindings
 import com.google.protobuf.timestamp.Timestamp
 import com.google.protobuf.ByteString
 
+import cats.effect.Sync
+import cats.syntax.all._
 import java.time.{ LocalDateTime, ZoneOffset }
+import java.util.UUID
 
-import com.vportnov.locations.{ model, grpc }
+import com.vportnov.locations.{ model, grpc, utils }
+import com.vportnov.locations.utils.ServerError
 
 
 
@@ -113,3 +117,42 @@ extension (locations: grpc.Locations)
 
   def toLocationsWithoutCreatedField: List[model.Location.WithoutCreatedField] =
     locations.list.toList.map(_.toLocationWithoutCreatedField)
+
+extension (kind: utils.ServerError.Kind)
+  def toMessage: grpc.ServerError.Kind = kind match
+    case utils.ServerError.Kind.IllegalArgument => grpc.ServerError.Kind.IllegalArgument
+    case utils.ServerError.Kind.NoSuchElement => grpc.ServerError.Kind.NoSuchElement
+    case utils.ServerError.Kind.Internal => grpc.ServerError.Kind.Internal
+  
+extension (kind: grpc.ServerError.Kind)
+  def toModel: utils.ServerError.Kind = kind match
+    case grpc.ServerError.Kind.IllegalArgument => utils.ServerError.Kind.IllegalArgument
+    case grpc.ServerError.Kind.NoSuchElement => utils.ServerError.Kind.NoSuchElement
+    case grpc.ServerError.Kind.Internal => utils.ServerError.Kind.Internal
+    case _ => utils.ServerError.Kind.Internal
+
+extension (error: Throwable)
+  def toMessage: grpc.ServerError =
+    val serverError = utils.ServerError.fromCause(error)
+    grpc.ServerError()
+      .withUuid(serverError.uuid.toString)
+      .withMessage(serverError.message)
+      .withKind(serverError.kind.toMessage)
+
+extension (error: grpc.ServerError)
+  def toModel: utils.ServerError =
+    ServerError(error.message, error.kind.toModel, UUID.fromString(error.uuid))
+
+extension [F[_]: Sync] (count: F[Int])
+    def toMessage: F[grpc.CountReply] =
+      count
+        .map(c => grpc.CountReply().withCount(grpc.Count(c)))
+        .recover(e => grpc.CountReply().withServerError(e.toMessage))
+
+extension [F[_]: Sync] (countReply: F[grpc.CountReply])
+    def toModel: F[Int] = countReply.map { cr =>
+      (cr.message.count, cr.message.serverError) match
+        case (Some(count), None) => count.value
+        case (None, Some(serverError)) => throw serverError.toModel
+        case _ => throw ServerError.Internal("Incorrect format of CountReply received")
+    }

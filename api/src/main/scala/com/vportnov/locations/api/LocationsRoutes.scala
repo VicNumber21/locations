@@ -102,17 +102,19 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
     case n if n > 0 => response.Status.NoContent()
     case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
   
-  private def notFoundError(error: Throwable) = error match
-    case error if ServerError.fromCause(error).kind == ServerError.Kind.NoSuchElement => StatusCode.NotFound
-    case _ => commonErrors(error)
+  private def notFoundError(error: Throwable) =
+    ServerError.fromCause(error).kind match
+      case ServerError.Kind.NoSuchElement => StatusCode.NotFound
+      case _ => commonErrors(error)
 
-  private def conflictError(error: Throwable) = error match
-    case error if ServerError.fromCause(error).kind == ServerError.Kind.NoSuchElement => StatusCode.Conflict
-    case _ => commonErrors(error)
+  private def conflictError(error: Throwable) =
+    ServerError.fromCause(error).kind match
+      case ServerError.Kind.NoSuchElement => StatusCode.Conflict
+      case _ => commonErrors(error)
 
   private def commonErrors(error: Throwable) =
-    error match
-      case _: IllegalArgumentException => StatusCode.BadRequest
+    ServerError.fromCause(error).kind match
+      case ServerError.Kind.IllegalArgument => StatusCode.BadRequest
       case _ => StatusCode.InternalServerError
   
   val routes =

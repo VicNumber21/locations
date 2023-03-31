@@ -34,7 +34,7 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
 
   override def deleteLocations(ids: Location.Ids): F[Int] =
     if ids.isEmpty
-      then Sync[F].raiseError(ServerError.Internal("Ids list must not be empty"))
+      then Sync[F].raiseError(ServerError.IllegalArgument("Ids list must not be empty"))
       else sql.delete.locations(ids) .run .transact(tx)
 
   override def locationStats(period: Period): LocationStatsStream[F] =

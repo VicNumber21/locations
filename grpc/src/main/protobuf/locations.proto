@@ -10,7 +10,7 @@ service LocationService {
   rpc getLocations (Query) returns (stream Location) {}
   rpc updateLocations (Locations) returns (stream Location) {}
   rpc locationStats (Period) returns (stream LocationStats) {}
-  rpc deleteLocations (Ids) returns (stream Count) {}
+  rpc deleteLocations (Ids) returns (CountReply) {}
 }
 
 message Period {
@@ -50,4 +50,23 @@ message Location {
 
 message Locations {
   repeated Location list = 1;
+}
+
+message ServerError {
+  string uuid = 1;
+  string message = 2;
+  Kind kind = 3;
+
+  enum Kind {
+    Internal = 0;
+    IllegalArgument = 1;
+    NoSuchElement = 2;
+  }
+}
+
+message CountReply {
+  oneof message {
+    Count count = 1;
+    ServerError serverError = 2;
+  }
 }

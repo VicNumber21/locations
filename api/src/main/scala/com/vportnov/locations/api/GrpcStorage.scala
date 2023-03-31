@@ -11,7 +11,6 @@ import io.grpc._
 
 import com.vportnov.locations.api.Config.Address
 import com.vportnov.locations.model
-import com.vportnov.locations.utils.fs2stream.syntax._
 import com.vportnov.locations.grpc
 import com.vportnov.locations.grpc.bindings._
 
@@ -37,12 +36,7 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
     yield location.toLocationWithCreatedField
 
   override def deleteLocations(ids: model.Location.Ids): F[Int] =
-    val countStream: Stream[F, Int] =
-      for
-        grpcApi <- grpcApiStream
-        count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
-      yield count.value
-    countStream.firstEntry // TODO remove import com.vportnov.locations.utils.fs2stream.syntax._ if this is removed
+    grpcClient.use { grpcApi => grpcApi.deleteLocations(grpc.Ids(ids), new Metadata).toModel }
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
     for

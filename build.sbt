@@ -39,6 +39,7 @@ lazy val grpc =
     )
     .enablePlugins(Fs2Grpc)
     .dependsOn(model)
+    .dependsOn(utils)
 
 lazy val api =
   (project in file("./api"))
