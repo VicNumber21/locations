@@ -6,10 +6,10 @@ import "google/protobuf/timestamp.proto";
 
 
 service LocationService {
-  rpc createLocations (Locations) returns (stream Location) {}
-  rpc getLocations (Query) returns (stream Location) {}
-  rpc updateLocations (Locations) returns (stream Location) {}
-  rpc locationStats (Period) returns (stream LocationStats) {}
+  rpc createLocations (Locations) returns (stream LocationReply) {}
+  rpc getLocations (Query) returns (stream LocationReply) {}
+  rpc updateLocations (Locations) returns (stream LocationReply) {}
+  rpc locationStats (Period) returns (stream LocationStatsReply) {}
   rpc deleteLocations (Ids) returns (CountReply) {}
 }
 
@@ -67,6 +67,20 @@ message ServerError {
 message CountReply {
   oneof message {
     Count count = 1;
+    ServerError serverError = 2;
+  }
+}
+
+message LocationStatsReply {
+  oneof message {
+    LocationStats locationStats = 1;
+    ServerError serverError = 2;
+  }
+}
+
+message LocationReply {
+  oneof message {
+    Location location = 1;
     ServerError serverError = 2;
   }
 }

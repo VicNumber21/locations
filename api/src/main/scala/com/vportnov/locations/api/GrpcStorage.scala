@@ -20,29 +20,29 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
     for
       grpcApi <- grpcApiStream
       location <- grpcApi.createLocations(locations.toMessage, new Metadata)
-    yield location.toLocationWithCreatedField
+    yield location.unpackLocation
 
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
     for
       grpcApi <- grpcApiStream
       query = grpc.Query().withPeriod(period.toMessage).withIds(ids.toMessage)
       location <- grpcApi.getLocations(query, new Metadata)
-    yield location.toLocationWithCreatedField
+    yield location.unpackLocation
 
   override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] =
     for
       grpcApi <- grpcApiStream
       location <- grpcApi.updateLocations(locations.toMessage, new Metadata)
-    yield location.toLocationWithCreatedField
+    yield location.unpackLocation
 
   override def deleteLocations(ids: model.Location.Ids): F[Int] =
-    grpcClient.use { grpcApi => grpcApi.deleteLocations(grpc.Ids(ids), new Metadata).toModel }
+    grpcClient.use { grpcApi => grpcApi.deleteLocations(grpc.Ids(ids), new Metadata).unpackCount }
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =
     for
       grpcApi <- grpcApiStream
       stats <- grpcApi.locationStats(period.toMessage, new Metadata)
-    yield stats.toModel
+    yield stats.unpackLocationStats
 
   private val grpcClient: Resource[F, grpc.LocationServiceFs2Grpc[F, Metadata]] =
     NettyChannelBuilder

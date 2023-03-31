@@ -5,6 +5,7 @@ import com.google.protobuf.ByteString
 
 import cats.effect.Sync
 import cats.syntax.all._
+import fs2.Stream
 import java.time.{ LocalDateTime, ZoneOffset }
 import java.util.UUID
 
@@ -144,15 +145,43 @@ extension (error: grpc.ServerError)
     ServerError.fromRemoteError(error.message, error.kind.toModel, UUID.fromString(error.uuid))
 
 extension [F[_]: Sync] (count: F[Int])
-    def toMessage: F[grpc.CountReply] =
-      count
-        .map(c => grpc.CountReply().withCount(grpc.Count(c)))
-        .recover(e => grpc.CountReply().withServerError(e.toMessage))
+  def packCount: F[grpc.CountReply] =
+    count
+      .map(c => grpc.CountReply().withCount(grpc.Count(c)))
+      .recover(e => grpc.CountReply().withServerError(e.toMessage))
 
 extension [F[_]: Sync] (countReply: F[grpc.CountReply])
-    def toModel: F[Int] = countReply.map { cr =>
-      (cr.message.count, cr.message.serverError) match
-        case (Some(count), None) => count.value
-        case (None, Some(serverError)) => throw serverError.toModel
-        case _ => throw ServerError.Internal("Incorrect format of CountReply received")
-    }
+  def unpackCount: F[Int] = countReply.map { cr =>
+    (cr.message.count, cr.message.serverError) match
+      case (Some(count), None) => count.value
+      case (None, Some(serverError)) => throw serverError.toModel
+      case _ => throw ServerError.Internal("Incorrect format of CountReply received")
+  }
+
+extension [F[_]: Sync] (stream: Stream[F, model.Location.Stats])
+  def packLocationStats: Stream[F, grpc.LocationStatsReply] =
+    stream
+      .map(stats => grpc.LocationStatsReply().withLocationStats(stats.toMessage))
+      .recover(e => grpc.LocationStatsReply().withServerError(e.toMessage))
+
+
+extension (locationStatsReply: grpc.LocationStatsReply)
+  def unpackLocationStats: model.Location.Stats = 
+    (locationStatsReply.message.locationStats, locationStatsReply.message.serverError) match
+      case (Some(stats), None) => stats.toModel
+      case (None, Some(serverError)) => throw serverError.toModel
+      case _ => throw ServerError.Internal("Incorrect format of LocationStatsReply received")
+
+extension [F[_]: Sync] (stream: Stream[F, model.Location.WithCreatedField])
+  def packLocation: Stream[F, grpc.LocationReply] =
+    stream
+      .map(location => grpc.LocationReply().withLocation(location.toMessage))
+      .recover(e => grpc.LocationReply().withServerError(e.toMessage))
+
+
+extension (locationReply: grpc.LocationReply)
+  def unpackLocation: model.Location.WithCreatedField = 
+    (locationReply.message.location, locationReply.message.serverError) match
+      case (Some(location), None) => location.toLocationWithCreatedField
+      case (None, Some(serverError)) => throw serverError.toModel
+      case _ => throw ServerError.Internal("Incorrect format of LocationReply received")
