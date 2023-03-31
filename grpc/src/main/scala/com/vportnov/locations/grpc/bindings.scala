@@ -141,7 +141,7 @@ extension (error: Throwable)
 
 extension (error: grpc.ServerError)
   def toModel: utils.ServerError =
-    ServerError(error.message, error.kind.toModel, UUID.fromString(error.uuid))
+    ServerError.fromRemoteError(error.message, error.kind.toModel, UUID.fromString(error.uuid))
 
 extension [F[_]: Sync] (count: F[Int])
     def toMessage: F[grpc.CountReply] =
