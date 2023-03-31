@@ -20,16 +20,15 @@ message Period {
 
 message Query {
   Period period = 1;
-  repeated string ids = 2;
+  Ids ids = 2;
 }
 
-// TODO resuse in Query?
 message Ids {
-  repeated string ids = 1;
+  repeated string value = 1;
 }
 
 message Count {
-  int32 count = 1;
+  int32 value = 1;
 }
 
 message BigDecimal {

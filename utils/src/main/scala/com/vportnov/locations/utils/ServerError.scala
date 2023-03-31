@@ -31,9 +31,9 @@ object ServerError:
   def NoSuchElement(message: String) = new ServerError(message, ServerError.Kind.NoSuchElement)
   def Internal(message: String) = new ServerError(message, ServerError.Kind.Internal)
   def fromCause(cause: Throwable) = cause match
+    case cause: ServerError => cause
     case cause: IllegalArgumentException => new ServerError(cause, ServerError.Kind.IllegalArgument)
     case cause: NoSuchElementException => new ServerError(cause, ServerError.Kind.NoSuchElement)
-    case cause: ServerError => cause
     case _ =>new ServerError(cause)
 
   object syntax:

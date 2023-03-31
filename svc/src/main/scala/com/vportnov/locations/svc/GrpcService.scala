@@ -19,7 +19,7 @@ final class GrpcService[F[_]: Async](storage: model.Storage[F]) extends grpc.Loc
       .logWhenDone
 
   def getLocations(query: grpc.Query, ctx: Metadata): Stream[F, grpc.Location] =
-    storage.getLocations(query.getPeriod.toModel, query.ids.toList)
+    storage.getLocations(query.getPeriod.toModel, query.ids.toModel)
       .map(_.toMessage)
       .logWhenDone
 
@@ -29,7 +29,7 @@ final class GrpcService[F[_]: Async](storage: model.Storage[F]) extends grpc.Loc
       .logWhenDone
 
   override def deleteLocations(ids: grpc.Ids, ctx: Metadata): Stream[F, grpc.Count] =
-    val count = storage.deleteLocations(ids.ids.toList)
+    val count = storage.deleteLocations(ids.toModel)
       .logWhenDone
     Stream.eval(count).map(grpc.Count(_))
 

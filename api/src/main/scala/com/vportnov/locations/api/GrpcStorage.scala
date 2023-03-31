@@ -26,7 +26,7 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
   override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] =
     for
       grpcApi <- grpcApiStream
-      query = grpc.Query().withPeriod(period.toMessage).withIds(ids)
+      query = grpc.Query().withPeriod(period.toMessage).withIds(ids.toMessage)
       location <- grpcApi.getLocations(query, new Metadata)
     yield location.toLocationWithCreatedField
 
@@ -41,7 +41,7 @@ final class GrpcStorage[F[_]: Async](grpcAddress: Address) extends model.Storage
       for
         grpcApi <- grpcApiStream
         count <- grpcApi.deleteLocations(grpc.Ids(ids), new Metadata)
-      yield count.count
+      yield count.value
     countStream.firstEntry // TODO remove import com.vportnov.locations.utils.fs2stream.syntax._ if this is removed
 
   override def locationStats(period: model.Period): LocationStatsStream[F] =

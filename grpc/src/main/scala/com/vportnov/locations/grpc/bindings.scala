@@ -33,6 +33,19 @@ extension (period: model.Period)
 extension (period: grpc.Period)
   def toModel: model.Period =
     model.Period(period.from.toModel, period.to.toModel)
+  
+extension (ids: model.Location.Ids)
+  def toMessage: grpc.Ids =
+    grpc.Ids(ids)
+  
+extension (ids: grpc.Ids)
+  def toModel: model.Location.Ids =
+    ids.value.toList
+
+extension (ids: Option[grpc.Ids])
+  def toModel: model.Location.Ids = ids match
+    case None => List.empty
+    case some => some.get.toModel
 
 extension (stats: model.Location.Stats)
   def toMessage: grpc.LocationStats =
