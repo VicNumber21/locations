@@ -24,7 +24,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val createRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.createEndpoint
-        .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from))
+        .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from, conflictError))
     )
   
   val createOneRoute: HttpRoutes[F] =
@@ -36,7 +36,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val getRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.getEndpoint
-        .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from))
+        .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from, notFoundError))
     )
 
   val getOneRoute: HttpRoutes[F] =
@@ -48,7 +48,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val updateRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.updateEndpoint
-        .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from))
+        .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from, notFoundError))
     )
   
   val updateOneRoute: HttpRoutes[F] =
@@ -60,7 +60,7 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val deleteRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.deleteEndpoint
-        .serverLogic(request => reply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
+        .serverLogic(request => newReply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
     )
 
   val deleteOneRoute: HttpRoutes[F] =
@@ -72,23 +72,34 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
   val statsRoute: HttpRoutes[F] =
     Http4sServerInterpreter[F]().toRoutes(
       LocationsRoutes.statsEndpoint
-        .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from))
+        .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from, commonErrors))
     )
 
-  private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O)(using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
+  private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O, errorMapper: Throwable => response.Status)
+                          (using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
       .map(mapper)
       .map(_.asJson.noSpaces)
       .logWhenDone
       .recover { error =>
-        response.Status.InternalServerError(error.getMessage()).asJson.noSpaces
+        errorMapper(error).toJson.noSpaces
       }
       .toJsonArray
       .through(fs2.text.utf8.encode)
       .pure[F]
       .logWhenDone
 
-  private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => StatusCode): F[Either[StatusCode, O]] =
+  private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[StatusCode, O]] =
+    val result = for
+      unpacked <- storageResponse
+        .map(mapper)
+        .logWhenDone
+        .attempt
+    yield unpacked.left.map(errorMapper.andThen(_.toStatusCode))
+    result.logWhenDone
+
+  // TODO rename to reply when prev reply is removed
+  private def newReply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[response.Status, O]] =
     val result = for
       unpacked <- storageResponse
         .map(mapper)
@@ -103,19 +114,22 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
     case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
   
   private def notFoundError(error: Throwable) =
-    ServerError.fromCause(error).kind match
-      case ServerError.Kind.NoSuchElement => StatusCode.NotFound
+    val se = ServerError.fromCause(error)
+    se.kind match
+      case ServerError.Kind.NoSuchElement => response.Status.NotFound(se.message, se.uuid)
       case _ => commonErrors(error)
 
   private def conflictError(error: Throwable) =
-    ServerError.fromCause(error).kind match
-      case ServerError.Kind.NoSuchElement => StatusCode.Conflict
+    val se = ServerError.fromCause(error)
+    se.kind match
+      case ServerError.Kind.NoSuchElement => response.Status.Conflict(se.message, se.uuid)
       case _ => commonErrors(error)
 
   private def commonErrors(error: Throwable) =
-    ServerError.fromCause(error).kind match
-      case ServerError.Kind.IllegalArgument => StatusCode.BadRequest
-      case _ => StatusCode.InternalServerError
+    val se = ServerError.fromCause(error)
+    se.kind match
+      case ServerError.Kind.IllegalArgument => response.Status.BadRequest(se.message, se.uuid)
+      case _ => response.Status.InternalServerError(se.message, se.uuid)
   
   val routes =
     createRoute <+>
@@ -131,13 +145,13 @@ final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sD
 object LocationsRoutes:
   val baseEndpoint = endpoint
     .in("api" / "v1.0" / "locations")
-    .errorOut(statusCode) // TODO add json error as Status
 
   def createEndpoint[F[_]]: PublicEndpoint[request.Create, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
     .post
     .description("Create locations in batch.")
     .tag("Create")
     .in(request.Create.input)
+    .errorOut(statusCode) // TODO add json error as Status
     .out(response.Location.body.stream)
     .out(statusCode(StatusCode.Created))
 
@@ -146,6 +160,7 @@ object LocationsRoutes:
     .description("Create a single location.")
     .tag("Create")
     .in(request.CreateOne.input)
+    .errorOut(statusCode)
     .out(response.Location.body.json)
     .out(statusCode(StatusCode.Created))
 
@@ -154,6 +169,7 @@ object LocationsRoutes:
     .description("Get list of locations: all, particular ids or created before or after or between dates.")
     .tag("Get")
     .in(request.Get.input)
+    .errorOut(statusCode)
     .out(response.Location.body.stream)
 
   val getOneEndpoint: PublicEndpoint[request.GetOne, StatusCode, response.Location, Any] = baseEndpoint
@@ -161,6 +177,7 @@ object LocationsRoutes:
     .description("Get particular location by given id.")
     .tag("Get")
     .in(request.GetOne.input)
+    .errorOut(statusCode)
     .out(response.Location.body.json)
 
   def updateEndpoint[F[_]]: PublicEndpoint[request.Update, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
@@ -168,6 +185,7 @@ object LocationsRoutes:
     .description("Update longitude and latitude of given location in batch.")
     .tag("Update")
     .in(request.Update.input)
+    .errorOut(statusCode)
     .out(response.Location.body.stream)
 
   val updateOneEndpoint: PublicEndpoint[request.UpdateOne, StatusCode, response.Location, Any] = baseEndpoint
@@ -175,13 +193,15 @@ object LocationsRoutes:
     .description("Update longitude and latitude of particular location.")
     .tag("Update")
     .in(request.UpdateOne.input)
+    .errorOut(statusCode)
     .out(response.Location.body.json)
 
-  val deleteEndpoint: PublicEndpoint[request.Delete, StatusCode, response.Delete, Any] = baseEndpoint
+  val deleteEndpoint: PublicEndpoint[request.Delete, response.Status, response.Delete, Any] = baseEndpoint
     .delete
     .description("Delete list of given locations in batch.")
     .tag("Delete")
     .in(request.Delete.input)
+    .errorOut(response.Delete.error)
     .out(response.Delete.output)
 
   val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, StatusCode, response.Delete, Any] = baseEndpoint
@@ -189,6 +209,7 @@ object LocationsRoutes:
     .description("Delete particular location by given id.")
     .tag("Delete")
     .in(request.DeleteOne.input)
+    .errorOut(statusCode)
     .out(response.Delete.output)
 
   def statsEndpoint[F[_]]: PublicEndpoint[request.Stats, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint
@@ -198,6 +219,7 @@ object LocationsRoutes:
     .tag("Statistics")
     .in("-" / "stats")
     .in(request.Stats.input)
+    .errorOut(statusCode)
     .out(response.Stats.body.stream)
   
   val endpoints: List[AnyEndpoint] =
