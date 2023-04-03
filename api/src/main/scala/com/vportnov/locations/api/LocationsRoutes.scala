@@ -7,7 +7,11 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.HttpRoutes
 
 import sttp.tapir._
-import sttp.tapir.server.http4s.Http4sServerInterpreter
+import sttp.tapir.server.http4s.{ Http4sServerInterpreter, Http4sServerOptions }
+import sttp.tapir.server.interceptor.decodefailure.DefaultDecodeFailureHandler
+import sttp.tapir.server.interceptor.exception.{ExceptionHandler, ExceptionContext}
+import sttp.tapir.server.interceptor.log.DefaultServerLog
+import sttp.tapir.server.model.ValuedEndpointOutput
 import sttp.model.StatusCode
 import io.circe.syntax._
 
@@ -21,60 +25,100 @@ import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
 
 final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends Http4sDsl[F] with LoggingIO[F]:
+  private def badRequestResponse(message: String): ValuedEndpointOutput[response.Status.BadRequest] =
+    ValuedEndpointOutput(response.Status.BadRequest.asJsonBody, response.Status.BadRequest(message))
+
+  private def internalServerErrorResponse(message: String): ValuedEndpointOutput[response.Status.InternalServerError] =
+    ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, response.Status.InternalServerError(message))
+  
+  val serverLogger: DefaultServerLog[F] = DefaultServerLog(
+    doLogWhenReceived = log.info(_),
+    doLogWhenHandled = (msg: String, error: Option[Throwable]) => if error.isEmpty then log.info(msg) else log.info(error.get)(msg),
+    doLogAllDecodeFailures = (msg: String, error: Option[Throwable]) => if error.isEmpty then log.warn(msg) else log.warn(error.get)(msg),
+    doLogExceptions = (msg: String, error: Throwable) => log.error(error)(msg),
+    noLog = cats.effect.Sync[F].pure(()),
+    logWhenReceived = true,
+    logWhenHandled = true,
+    logAllDecodeFailures = false,
+    logLogicExceptions = false
+  )
+  
+  val exceptionHandler: ExceptionHandler[F] =
+    new ExceptionHandler[F]:
+      override def apply(ctx: ExceptionContext)(implicit monad: sttp.monad.MonadError[F]): F[Option[ValuedEndpointOutput[_]]] =
+        val error = ServerError.fromCause(ctx.e)
+        val errorResponse = response.Status.InternalServerError(error.message, error.uuid)
+        log.error(error)(s"Exception when handling request: ${ctx.request.showShort}, by ${ctx.endpoint.showShort}")
+          .flatMap { (x: Unit) =>
+            Some(ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, errorResponse)).pure[F]
+          }
+
+  // TODO rework as the following:
+  // LocationRoutes should be renamed into Endpoints
+  // they should return List of ServerEndpoints (including swagger ones)
+  // it should be a single Http4sServerInterpreter in Service file which creates al routes from the list 
+  // options should be moved there probably
+  val options: Http4sServerOptions[F] = Http4sServerOptions
+    .customiseInterceptors
+    .decodeFailureHandler(DefaultDecodeFailureHandler.default.response(badRequestResponse))
+    .exceptionHandler(exceptionHandler)
+    .serverLog(serverLogger)
+    .options
+
   val createRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.createEndpoint
         .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from, conflictError))
     )
   
   val createOneRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.createOneEndpoint
         .serverLogic(request => reply(storage.createLocation(request.toModel), response.Location.from, conflictError))
     )
 
   val getRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.getEndpoint
         .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from, notFoundError))
     )
 
   val getOneRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.getOneEndpoint
         .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError))
     )
 
   val updateRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.updateEndpoint
         .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from, notFoundError))
     )
   
   val updateOneRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.updateOneEndpoint
         .serverLogic(request => reply(storage.updateLocation(request.toModel), response.Location.from, notFoundError))
     )
 
   val deleteRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.deleteEndpoint
         .serverLogic(request => newReply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
     )
 
   val deleteOneRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.deleteOneEndpoint
-        .serverLogic(request => reply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
+        .serverLogic(request => newReply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
     )
   
   val statsRoute: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(
+    Http4sServerInterpreter[F](options).toRoutes(
       LocationsRoutes.statsEndpoint
         .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from, commonErrors))
     )
-
+  
   private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O, errorMapper: Throwable => response.Status)
                           (using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
@@ -204,12 +248,12 @@ object LocationsRoutes:
     .errorOut(response.Delete.error)
     .out(response.Delete.output)
 
-  val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, StatusCode, response.Delete, Any] = baseEndpoint
+  val deleteOneEndpoint: PublicEndpoint[request.DeleteOne, response.Status, response.Delete, Any] = baseEndpoint
     .delete
     .description("Delete particular location by given id.")
     .tag("Delete")
     .in(request.DeleteOne.input)
-    .errorOut(statusCode)
+    .errorOut(response.Delete.error)
     .out(response.Delete.output)
 
   def statsEndpoint[F[_]]: PublicEndpoint[request.Stats, StatusCode, Stream[F, Byte], Fs2Streams[F]] = baseEndpoint

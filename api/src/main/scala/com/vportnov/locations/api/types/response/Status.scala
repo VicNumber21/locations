@@ -54,8 +54,9 @@ object Status:
 
   case class BadRequest(code: Int = 400, message: Option[String] = None, uuid: UUID) extends Status
   object BadRequest:
-    def apply(message: String, uuid: UUID) = new BadRequest(message = Some(message), uuid = uuid)
-    def example = BadRequest("Incorrect parameters of request. Details could be found by uuid", UUID.randomUUID())
+    def apply(message: String, uuid: UUID): BadRequest = new BadRequest(message = Some(message), uuid = uuid)
+    def apply(message: String): BadRequest = BadRequest(message, UUID.randomUUID())
+    def example: BadRequest = BadRequest("Incorrect parameters of request. Details could be found by uuid")
     def asStatusCodeWithJsonBody: EndpointOutput[BadRequest] =
         statusCode(StatusCode.BadRequest).and(asJsonBody)
     def asJsonBody: EndpointOutput[BadRequest] =
@@ -88,8 +89,9 @@ object Status:
 
   case class InternalServerError(code: Int = 500, message: Option[String] = None, uuid: UUID) extends Status
   object InternalServerError:
-    def apply(message: String, uuid: UUID) = new InternalServerError(message = Some(message), uuid = uuid)
-    def example = InternalServerError("Exception in server log could be found by uuid", UUID.randomUUID())
+    def apply(message: String, uuid: UUID): InternalServerError = new InternalServerError(message = Some(message), uuid = uuid)
+    def apply(message: String): InternalServerError = InternalServerError(message, UUID.randomUUID())
+    def example: InternalServerError = InternalServerError("Exception in server log could be found by uuid")
     def asStatusCodeWithJsonBody: EndpointOutput[InternalServerError] =
       statusCode(StatusCode.InternalServerError).and(asJsonBody)
     def asJsonBody: EndpointOutput[InternalServerError] =

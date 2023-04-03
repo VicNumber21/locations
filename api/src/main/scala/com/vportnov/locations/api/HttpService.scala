@@ -18,7 +18,7 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]):
 
   private val locationsRoutes = new LocationsRoutes(storage)
   private val swaggerRoutes: HttpRoutes[F] =
-    Http4sServerInterpreter[F]().toRoutes(SwaggerInterpreter().fromEndpoints[F](LocationsRoutes.endpoints, "Locations Service", "1.0.0"))
+    Http4sServerInterpreter[F](locationsRoutes.options).toRoutes(SwaggerInterpreter().fromEndpoints[F](LocationsRoutes.endpoints, "Locations Service", "1.0.0"))
 
   private val routes: HttpRoutes[F] = 
     locationsRoutes.routes <+>
