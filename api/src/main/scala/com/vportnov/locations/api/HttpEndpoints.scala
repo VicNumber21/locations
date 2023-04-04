@@ -188,11 +188,16 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def stats: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
-    .description("Get statistic about count of created locations per day." ++
-                 " Statistic could be requested for all locations or created before or after or between dates.")
+    .description("""|Get statistic about count of created locations per day.
+                    |
+                    |Statistic could be requested for all locations or created before or after or between dates.
+                    |
+                    |Always returns 200 with valid input due to streaming nature.
+                    |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                    |""".stripMargin)
     .tag("Statistics")
     .in("-" / "stats")
     .in(request.Stats.input)
-    .errorOut(statusCode)
-    .out(response.Stats.body.stream)
+    .errorOut(response.Stats.error)
+    .out(response.Stats.output)
     .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from, commonErrors))
