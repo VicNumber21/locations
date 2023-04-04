@@ -105,7 +105,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
                     |Always returns 201 with valid input due to streaming nature.
                     |However, not created enties are not sent back what should be treated as Conflict response.
                     |
-                    |Also error body may returns after 201 if error is detected after stream is established (see bodies for error cases)
+                    |Also error body returns after 201 if error is detected after stream is established (see bodies for error cases)
                     |""".stripMargin)
     .tag("Create")
     .in(request.Create.input)
@@ -124,11 +124,15 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def get: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
-    .description("Get list of locations: all, particular ids or created before or after or between dates.")
+    .description("""| Get list of locations: all, particular ids or created before or after or between dates.
+                    |
+                    |Always returns 200 with valid input due to streaming nature.
+                    |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                    |""".stripMargin)
     .tag("Get")
     .in(request.Get.input)
-    .errorOut(statusCode)
-    .out(response.Location.body.stream)
+    .errorOut(response.Get.error)
+    .out(response.Get.output)
     .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from, commonErrors))
 
   private def getOne: ServerEndpoint[Any, F] = baseEndpoint
@@ -147,7 +151,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
                     |Always returns 200 with valid input due to streaming nature.
                     |However, not updated enties are not sent back what should be treated as NotFound response.
                     |
-                    |Also error body may returns after 200 if error is detected after stream is established (see bodies for error cases)
+                    |Also error body returns after 200 if error is detected after stream is established (see bodies for error cases)
                     |""".stripMargin)
     .tag("Update")
     .in(request.Update.input)
