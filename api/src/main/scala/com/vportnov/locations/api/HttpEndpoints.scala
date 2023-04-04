@@ -141,11 +141,17 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def update: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .put
-    .description("Update longitude and latitude of given location in batch.")
+    .description("""|Update longitude and latitude of given locations in batch.
+                    |
+                    |Always returns 200 with valid input due to streaming nature.
+                    |However, not updated enties are not sent back what should be treated as NotFound response.
+                    |
+                    |Also error body may returns after 200 if error is detected after stream is established (see bodies for error cases)
+                    |""".stripMargin)
     .tag("Update")
     .in(request.Update.input)
-    .errorOut(statusCode)
-    .out(response.Location.body.stream)
+    .errorOut(response.Update.error)
+    .out(response.Update.output)
     .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from, notFoundError))
   
   private def updateOne: ServerEndpoint[Any, F] = baseEndpoint
