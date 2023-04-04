@@ -77,7 +77,17 @@ object Status:
 
   case class NotFound(code: Int = 404, message: Option[String] = None, errorId: UUID) extends Error
   object NotFound:
-    def apply(message: String, errorId: UUID) = new NotFound(message = Some(message), errorId = errorId)
+    def apply(id: field.Id, errorId: UUID): NotFound = new NotFound(message = Some(meta.description(id)), errorId = errorId)
+    def apply(id: field.Id): NotFound = NotFound(id, UUID.randomUUID())
+    def example: NotFound = NotFound(field.Id.example)
+    def asStatusCodeWithJsonBody: EndpointOutput[NotFound] =
+        statusCode(StatusCode.NotFound).and(asJsonBody)
+    def asJsonBody: EndpointOutput[NotFound] =
+      jsonBody[Status.NotFound]
+        .description("Location with given id does not exist.")
+        .example(Status.NotFound.example)
+    object meta:
+      def description(id: field.Id) = s"Location with id '${id.v}' does not exist"
 
   given Schema[NotFound] = Schema.derived[NotFound]
   given Encoder[NotFound] = deriveEncoder[NotFound]
@@ -93,10 +103,10 @@ object Status:
         statusCode(StatusCode.Conflict).and(asJsonBody)
     def asJsonBody: EndpointOutput[Conflict] =
       jsonBody[Status.Conflict]
-        .description("Location cannot be created since another location with given id already exists")
+        .description("Location cannot be created since another location with given id already exists.")
         .example(Status.Conflict.example)
     object meta:
-      def description(id: field.Id) = s"Location with id '${id.v}' cannot be created since already exists."
+      def description(id: field.Id) = s"Location with id '${id.v}' cannot be created since already exists"
 
 
   given Schema[Conflict] = Schema.derived[Conflict]

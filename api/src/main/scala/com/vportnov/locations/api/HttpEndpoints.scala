@@ -75,11 +75,12 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     case n if n > 0 => response.Status.NoContent()
     case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
   
-  private def notFoundError(error: Throwable) =
-    val se = ServerError.fromCause(error)
-    se.kind match
-      case ServerError.Kind.NoSuchElement => response.Status.NotFound(se.message, se.uuid)
-      case _ => commonErrors(error)
+  private def notFoundError(id: field.Id) =
+    (error: Throwable) =>
+      val se = ServerError.fromCause(error)
+      se.kind match
+        case ServerError.Kind.NoSuchElement => response.Status.NotFound(id, se.uuid)
+        case _ => commonErrors(error)
 
   private def conflictError(id: field.Id) =
     (error: Throwable) =>
@@ -128,7 +129,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.Get.input)
     .errorOut(statusCode)
     .out(response.Location.body.stream)
-    .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from, notFoundError))
+    .serverLogicSuccess(request => reply(storage.getLocations(request.period.toModel, request.ids.v), response.Location.from, commonErrors))
 
   private def getOne: ServerEndpoint[Any, F] = baseEndpoint
     .get
@@ -137,7 +138,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.GetOne.input)
     .errorOut(statusCode)
     .out(response.Location.body.json)
-    .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError))
+    .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError(request)))
 
   private def update: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .put
@@ -152,16 +153,16 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.Update.input)
     .errorOut(response.Update.error)
     .out(response.Update.output)
-    .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from, notFoundError))
+    .serverLogicSuccess(request => reply(storage.updateLocations(request.toModel), response.Location.from, commonErrors))
   
   private def updateOne: ServerEndpoint[Any, F] = baseEndpoint
     .put
     .description("Update longitude and latitude of particular location.")
     .tag("Update")
     .in(request.UpdateOne.input)
-    .errorOut(statusCode)
-    .out(response.Location.body.json)
-    .serverLogic(request => reply(storage.updateLocation(request.toModel), response.Location.from, notFoundError))
+    .errorOut(response.UpdateOne.error)
+    .out(response.UpdateOne.output)
+    .serverLogic(request => newReply(storage.updateLocation(request.toModel), response.Location.from, notFoundError(request.id)))
 
   private def delete: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .delete
