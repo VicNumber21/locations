@@ -29,9 +29,9 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
   
   private def showResponse(reply: ServerResponse[_]): String = reply match
     case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, error: response.Status.Error))) =>
-      s"${code}, uuid = ${error.uuid}"
+      s"${code}, errorId = ${error.errorId}"
     case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, (_, error: response.Status.Error)))) =>
-      s"${code}, uuid = ${error.uuid}"
+      s"${code}, errorId = ${error.errorId}"
     case _ =>
       reply.showShort
   

@@ -56,14 +56,14 @@ object Status:
 
 
   sealed trait Error extends Status:
-    val uuid: UUID
+    val errorId: UUID
 
 
-  case class BadRequest(code: Int = 400, message: Option[String] = None, uuid: UUID) extends Error
+  case class BadRequest(code: Int = 400, message: Option[String] = None, errorId: UUID) extends Error
   object BadRequest:
-    def apply(message: String, uuid: UUID): BadRequest = new BadRequest(message = Some(message), uuid = uuid)
+    def apply(message: String, errorId: UUID): BadRequest = new BadRequest(message = Some(message), errorId = errorId)
     def apply(message: String): BadRequest = BadRequest(message, UUID.randomUUID())
-    def example: BadRequest = BadRequest("Incorrect parameters of request. Details could be found by uuid")
+    def example: BadRequest = BadRequest("Incorrect parameters of request. Details could be found in server log by errorId")
     def asStatusCodeWithJsonBody: EndpointOutput[BadRequest] =
         statusCode(StatusCode.BadRequest).and(asJsonBody)
     def asJsonBody: EndpointOutput[BadRequest] =
@@ -76,29 +76,29 @@ object Status:
   given Decoder[BadRequest] = deriveDecoder[BadRequest]
 
 
-  case class NotFound(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Error
+  case class NotFound(code: Int = 404, message: Option[String] = None, errorId: UUID) extends Error
   object NotFound:
-    def apply(message: String, uuid: UUID) = new NotFound(message = Some(message), uuid = uuid)
+    def apply(message: String, errorId: UUID) = new NotFound(message = Some(message), errorId = errorId)
 
   given Schema[NotFound] = Schema.derived[NotFound]
   given Encoder[NotFound] = deriveEncoder[NotFound]
   given Decoder[NotFound] = deriveDecoder[NotFound]
 
 
-  case class Conflict(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Error
+  case class Conflict(code: Int = 404, message: Option[String] = None, errorId: UUID) extends Error
   object Conflict:
-    def apply(message: String, uuid: UUID) = new Conflict(message = Some(message), uuid = uuid)
+    def apply(message: String, errorId: UUID) = new Conflict(message = Some(message), errorId = errorId)
 
   given Schema[Conflict] = Schema.derived[Conflict]
   given Encoder[Conflict] = deriveEncoder[Conflict]
   given Decoder[Conflict] = deriveDecoder[Conflict]
 
 
-  case class InternalServerError(code: Int = 500, message: Option[String] = None, uuid: UUID) extends Error
+  case class InternalServerError(code: Int = 500, message: Option[String] = None, errorId: UUID) extends Error
   object InternalServerError:
-    def apply(message: String, uuid: UUID): InternalServerError = new InternalServerError(message = Some(message), uuid = uuid)
+    def apply(message: String, errorId: UUID): InternalServerError = new InternalServerError(message = Some(message), errorId = errorId)
     def apply(message: String): InternalServerError = InternalServerError(message, UUID.randomUUID())
-    def example: InternalServerError = InternalServerError("Exception in server log could be found by uuid")
+    def example: InternalServerError = InternalServerError("Exception could be found in server log by errorId")
     def asStatusCodeWithJsonBody: EndpointOutput[InternalServerError] =
       statusCode(StatusCode.InternalServerError).and(asJsonBody)
     def asJsonBody: EndpointOutput[InternalServerError] =
