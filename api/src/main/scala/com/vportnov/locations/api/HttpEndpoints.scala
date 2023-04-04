@@ -98,12 +98,17 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def create: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .post
-    .description("Create locations in batch.")
+    .description("""|Create locations in batch.
+                    |
+                    |Always returns 201 with valid input due to streaming nature.
+                    |However, not created enties are not sent back what should be treated as Conflict response.
+                    |
+                    |Also error body may returns after 201 if error is detected after stream is established (see bodies for error cases)
+                    |""".stripMargin)
     .tag("Create")
     .in(request.Create.input)
-    .errorOut(statusCode) // TODO add json error as Status
-    .out(response.Location.body.stream)
-    .out(statusCode(StatusCode.Created))
+    .errorOut(response.Create.error)
+    .out(response.Create.output)
     .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from, conflictError))
   
   private def createOne: ServerEndpoint[Any, F] = baseEndpoint

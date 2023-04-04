@@ -7,9 +7,6 @@ import sttp.tapir._
 import sttp.tapir.json.circe._
 import sttp.model.StatusCode
 import java.util.UUID
-import sttp.tapir.EndpointOutput.OneOf
-import sttp.tapir.EndpointOutput.OneOfVariant
-import com.vportnov.locations.api.types.response.Status.InternalServerError.asJsonBody
 
 
 // TODO improve error response
@@ -68,7 +65,7 @@ object Status:
         statusCode(StatusCode.BadRequest).and(asJsonBody)
     def asJsonBody: EndpointOutput[BadRequest] =
       jsonBody[Status.BadRequest]
-        .description("invalid value of request parameter.")
+        .description("Invalid value of request parameter or body.")
         .example(Status.BadRequest.example)
 
   given Schema[BadRequest] = Schema.derived[BadRequest]
