@@ -28,10 +28,13 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
     ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, response.Status.InternalServerError(message))
   
   private def showResponse(reply: ServerResponse[_]): String = reply match
+    case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, error: response.Status.Error))) =>
+      s"${code}, uuid = ${error.uuid}"
     case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, (_, error: response.Status.Error)))) =>
       s"${code}, uuid = ${error.uuid}"
     case _ =>
       reply.showShort
+  
   
   private def serverLogger: DefaultServerLog[F] = DefaultServerLog(
     doLogWhenReceived = log.info(_),
