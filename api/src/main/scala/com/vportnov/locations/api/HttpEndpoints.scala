@@ -70,7 +70,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     yield unpacked.left.map(errorMapper)
     result.logWhenDone
 
-  private def deleteSuccess(count: Int): response.Delete = count match
+  private def deleteSuccess(count: Int): response.Status = count match
     case 0 => response.Status.Ok()
     case n if n > 0 => response.Status.NoContent()
     case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
