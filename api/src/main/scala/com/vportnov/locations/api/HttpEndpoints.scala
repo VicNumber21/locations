@@ -51,17 +51,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
       .pure[F]
       .logWhenDone
 
-  private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[StatusCode, O]] =
-    val result = for
-      unpacked <- storageResponse
-        .map(mapper)
-        .logWhenDone
-        .attempt
-    yield unpacked.left.map(errorMapper.andThen(_.toStatusCode))
-    result.logWhenDone
-
-  // TODO rename to reply when prev reply is removed
-  private def newReply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[response.Status, O]] =
+  private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[response.Status, O]] =
     val result = for
       unpacked <- storageResponse
         .map(mapper)
@@ -120,7 +110,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.CreateOne.input)
     .errorOut(response.CreateOne.error)
     .out(response.CreateOne.output)
-    .serverLogic(request => newReply(storage.createLocation(request.toModel), response.Location.from, conflictError(request.id)))
+    .serverLogic(request => reply(storage.createLocation(request.toModel), response.Location.from, conflictError(request.id)))
 
   private def get: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
@@ -142,7 +132,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.GetOne.input)
     .errorOut(response.GetOne.error)
     .out(response.GetOne.output)
-    .serverLogic(request => newReply(storage.getLocation(request.v), response.Location.from, notFoundError(request)))
+    .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError(request)))
 
   private def update: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .put
@@ -166,7 +156,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.UpdateOne.input)
     .errorOut(response.UpdateOne.error)
     .out(response.UpdateOne.output)
-    .serverLogic(request => newReply(storage.updateLocation(request.toModel), response.Location.from, notFoundError(request.id)))
+    .serverLogic(request => reply(storage.updateLocation(request.toModel), response.Location.from, notFoundError(request.id)))
 
   private def delete: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .delete
@@ -175,7 +165,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.Delete.input)
     .errorOut(response.Delete.error)
     .out(response.Delete.output)
-    .serverLogic(request => newReply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
+    .serverLogic(request => reply(storage.deleteLocations(request.v), deleteSuccess, commonErrors))
 
   private def deleteOne: ServerEndpoint[Any, F] = baseEndpoint
     .delete
@@ -184,7 +174,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.DeleteOne.input)
     .errorOut(response.Delete.error)
     .out(response.Delete.output)
-    .serverLogic(request => newReply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
+    .serverLogic(request => reply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
   
   private def stats: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
