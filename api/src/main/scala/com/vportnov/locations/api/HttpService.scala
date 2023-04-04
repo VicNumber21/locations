@@ -6,7 +6,7 @@ import org.http4s.HttpRoutes
 import org.http4s.HttpApp
 import org.http4s.server.Router
 
-import sttp.tapir.server.model.ValuedEndpointOutput
+import sttp.tapir.server.model.{ ValuedEndpointOutput, ServerResponse }
 import sttp.tapir.server.http4s.{ Http4sServerInterpreter, Http4sServerOptions }
 import sttp.tapir.server.interceptor.decodefailure.DefaultDecodeFailureHandler
 import sttp.tapir.server.interceptor.exception.{ ExceptionHandler, ExceptionContext }
@@ -27,12 +27,19 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
   private def internalServerErrorResponse(message: String): ValuedEndpointOutput[response.Status.InternalServerError] =
     ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, response.Status.InternalServerError(message))
   
+  private def showResponse(reply: ServerResponse[_]): String = reply match
+    case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, (_, error: response.Status.Error)))) =>
+      s"${code}, uuid = ${error.uuid}"
+    case _ =>
+      reply.showShort
+  
   private def serverLogger: DefaultServerLog[F] = DefaultServerLog(
     doLogWhenReceived = log.info(_),
     doLogWhenHandled = (msg: String, error: Option[Throwable]) => if error.isEmpty then log.info(msg) else log.info(error.get)(msg),
     doLogAllDecodeFailures = (msg: String, error: Option[Throwable]) => if error.isEmpty then log.warn(msg) else log.warn(error.get)(msg),
     doLogExceptions = (msg: String, error: Throwable) => log.error(error)(msg),
     noLog = cats.effect.Sync[F].pure(()),
+    showResponse = showResponse,
     logWhenReceived = true,
     logWhenHandled = true,
     logAllDecodeFailures = false,

@@ -28,7 +28,10 @@ sealed trait Status:
     
 
 object Status:
-  case class Ok(code: Int = 200) extends Status
+  sealed trait Success extends Status
+
+
+  case class Ok(code: Int = 200) extends Success
   object Ok:
     def asStatusCodeWithEmptyBody(description: String): EndpointOutput[Ok] =
       statusCode(StatusCode.Ok).and(
@@ -40,7 +43,7 @@ object Status:
   given Decoder[Ok] = deriveDecoder[Ok]
 
 
-  case class NoContent(code: Int = 204) extends Status
+  case class NoContent(code: Int = 204) extends Success
   object NoContent:
     def asStatusCodeWithEmptyBody(description: String): EndpointOutput[NoContent] =
       statusCode(StatusCode.NoContent).and(
@@ -52,7 +55,11 @@ object Status:
   given Decoder[NoContent] = deriveDecoder[NoContent]
 
 
-  case class BadRequest(code: Int = 400, message: Option[String] = None, uuid: UUID) extends Status
+  sealed trait Error extends Status:
+    val uuid: UUID
+
+
+  case class BadRequest(code: Int = 400, message: Option[String] = None, uuid: UUID) extends Error
   object BadRequest:
     def apply(message: String, uuid: UUID): BadRequest = new BadRequest(message = Some(message), uuid = uuid)
     def apply(message: String): BadRequest = BadRequest(message, UUID.randomUUID())
@@ -69,7 +76,7 @@ object Status:
   given Decoder[BadRequest] = deriveDecoder[BadRequest]
 
 
-  case class NotFound(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Status
+  case class NotFound(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Error
   object NotFound:
     def apply(message: String, uuid: UUID) = new NotFound(message = Some(message), uuid = uuid)
 
@@ -78,7 +85,7 @@ object Status:
   given Decoder[NotFound] = deriveDecoder[NotFound]
 
 
-  case class Conflict(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Status
+  case class Conflict(code: Int = 404, message: Option[String] = None, uuid: UUID) extends Error
   object Conflict:
     def apply(message: String, uuid: UUID) = new Conflict(message = Some(message), uuid = uuid)
 
@@ -87,7 +94,7 @@ object Status:
   given Decoder[Conflict] = deriveDecoder[Conflict]
 
 
-  case class InternalServerError(code: Int = 500, message: Option[String] = None, uuid: UUID) extends Status
+  case class InternalServerError(code: Int = 500, message: Option[String] = None, uuid: UUID) extends Error
   object InternalServerError:
     def apply(message: String, uuid: UUID): InternalServerError = new InternalServerError(message = Some(message), uuid = uuid)
     def apply(message: String): InternalServerError = InternalServerError(message, UUID.randomUUID())
