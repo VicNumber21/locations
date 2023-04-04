@@ -20,7 +20,7 @@ import com.vportnov.locations.utils.fs2stream.syntax._
 import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
 
-final class LocationsRoutes[F[_]: Async](storage: StorageExt[F]) extends  LoggingIO[F]:
+final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingIO[F]:
   val serverEndpoints: List[ServerEndpoint[Fs2Streams[F], F]] =
     List(
       create,

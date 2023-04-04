@@ -12,7 +12,7 @@ import sttp.tapir.server.interceptor.decodefailure.DefaultDecodeFailureHandler
 import sttp.tapir.server.interceptor.exception.{ ExceptionHandler, ExceptionContext }
 import sttp.tapir.server.interceptor.log.DefaultServerLog
 
-import com.vportnov.locations.api.LocationsRoutes
+import com.vportnov.locations.api.HttpEndpoints
 import com.vportnov.locations.model.StorageExt
 import com.vportnov.locations.api.types.{ request, response }
 import com.vportnov.locations.utils. { LoggingIO, ServerError }
@@ -56,10 +56,12 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
     .serverLog(serverLogger)
     .options
 
-  private def locationsRoutes = new LocationsRoutes(storage)
+  private def version = getClass.getPackage.getImplementationVersion
+  private def name = "Locations Service"
+  private def endpoints = new HttpEndpoints(storage)
 
   private def routes: HttpRoutes[F] = 
     Http4sServerInterpreter[F](options).toRoutes(
-      locationsRoutes.serverEndpoints ++
-      locationsRoutes.swaggerEndpoints("Locations Service", "1.0.0")
+      endpoints.serverEndpoints ++
+      endpoints.swaggerEndpoints(name, version)
     )
