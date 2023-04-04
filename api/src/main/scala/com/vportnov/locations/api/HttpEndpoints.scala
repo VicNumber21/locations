@@ -90,14 +90,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def create: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .post
-    .description("""|Create locations in batch.
-                    |
-                    |Always returns 201 with valid input due to streaming nature.
-                    |However, not created enties are not sent back what should be treated as Conflict response.
-                    |
-                    |Also error body returns after 201 if error is detected after stream is established (see bodies for error cases)
-                    |""".stripMargin)
-    .tag("Create")
+    .description(HttpEndpoints.meta.description.create)
+    .tag(HttpEndpoints.meta.tag.create)
     .in(request.Create.input)
     .errorOut(response.Create.error)
     .out(response.Create.output)
@@ -105,8 +99,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def createOne: ServerEndpoint[Any, F] = baseEndpoint
     .post
-    .description("Create a single location.")
-    .tag("Create")
+    .description(HttpEndpoints.meta.description.createOne)
+    .tag(HttpEndpoints.meta.tag.create)
     .in(request.CreateOne.input)
     .errorOut(response.CreateOne.error)
     .out(response.CreateOne.output)
@@ -114,12 +108,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def get: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
-    .description("""| Get list of locations: all, particular ids or created before or after or between dates.
-                    |
-                    |Always returns 200 with valid input due to streaming nature.
-                    |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
-                    |""".stripMargin)
-    .tag("Get")
+    .description(HttpEndpoints.meta.description.get)
+    .tag(HttpEndpoints.meta.tag.get)
     .in(request.Get.input)
     .errorOut(response.Get.error)
     .out(response.Get.output)
@@ -127,8 +117,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def getOne: ServerEndpoint[Any, F] = baseEndpoint
     .get
-    .description("Get particular location by given id.")
-    .tag("Get")
+    .description(HttpEndpoints.meta.description.getOne)
+    .tag(HttpEndpoints.meta.tag.get)
     .in(request.GetOne.input)
     .errorOut(response.GetOne.error)
     .out(response.GetOne.output)
@@ -136,14 +126,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def update: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .put
-    .description("""|Update longitude and latitude of given locations in batch.
-                    |
-                    |Always returns 200 with valid input due to streaming nature.
-                    |However, not updated enties are not sent back what should be treated as NotFound response.
-                    |
-                    |Also error body returns after 200 if error is detected after stream is established (see bodies for error cases)
-                    |""".stripMargin)
-    .tag("Update")
+    .description(HttpEndpoints.meta.description.update)
+    .tag(HttpEndpoints.meta.tag.update)
     .in(request.Update.input)
     .errorOut(response.Update.error)
     .out(response.Update.output)
@@ -151,8 +135,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def updateOne: ServerEndpoint[Any, F] = baseEndpoint
     .put
-    .description("Update longitude and latitude of particular location.")
-    .tag("Update")
+    .description(HttpEndpoints.meta.description.updateOne)
+    .tag(HttpEndpoints.meta.tag.update)
     .in(request.UpdateOne.input)
     .errorOut(response.UpdateOne.error)
     .out(response.UpdateOne.output)
@@ -160,8 +144,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def delete: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .delete
-    .description("Delete list of given locations in batch.")
-    .tag("Delete")
+    .description(HttpEndpoints.meta.description.delete)
+    .tag(HttpEndpoints.meta.tag.delete)
     .in(request.Delete.input)
     .errorOut(response.Delete.error)
     .out(response.Delete.output)
@@ -169,8 +153,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
 
   private def deleteOne: ServerEndpoint[Any, F] = baseEndpoint
     .delete
-    .description("Delete particular location by given id.")
-    .tag("Delete")
+    .description(HttpEndpoints.meta.description.deleteOne)
+    .tag(HttpEndpoints.meta.tag.delete)
     .in(request.DeleteOne.input)
     .errorOut(response.Delete.error)
     .out(response.Delete.output)
@@ -178,16 +162,53 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   
   private def stats: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
-    .description("""|Get statistic about count of created locations per day.
-                    |
-                    |Statistic could be requested for all locations or created before or after or between dates.
-                    |
-                    |Always returns 200 with valid input due to streaming nature.
-                    |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
-                    |""".stripMargin)
-    .tag("Statistics")
+    .description(HttpEndpoints.meta.description.stats)
+    .tag(HttpEndpoints.meta.tag.stats)
     .in("-" / "stats")
     .in(request.Stats.input)
     .errorOut(response.Stats.error)
     .out(response.Stats.output)
     .serverLogicSuccess(request => reply(storage.locationStats(request.toModel), response.Stats.from, commonErrors))
+
+
+object HttpEndpoints:
+  object meta:
+    object tag:
+      val create = "Create"
+      val get = "Get"
+      val update = "Update"
+      val delete = "Delete"
+      val stats = "Statistics"
+
+    object description:
+      val create = """|Create locations in batch.
+                      |
+                      |Always returns 201 with valid input due to streaming nature.
+                      |However, not created enties are not sent back what should be treated as Conflict response.
+                      |
+                      |Also error body returns after 201 if error is detected after stream is established (see bodies for error cases)
+                      |""".stripMargin
+      val createOne = "Create a single location."
+      val get = """| Get list of locations: all, particular ids or created before or after or between dates.
+                   |
+                   |Always returns 200 with valid input due to streaming nature.
+                   |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                   |""".stripMargin
+      val getOne = "Get particular location by given id."
+      val update = """|Update longitude and latitude of given locations in batch.
+                      |
+                      |Always returns 200 with valid input due to streaming nature.
+                      |However, not updated enties are not sent back what should be treated as NotFound response.
+                      |
+                      |Also error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                      |""".stripMargin
+      val updateOne = "Update longitude and latitude of particular location."
+      val delete = "Delete list of given locations in batch."
+      val deleteOne = "Delete particular location by given id."
+      val stats = """|Get statistic about count of created locations per day.
+                     |
+                     |Statistic could be requested for all locations or created before or after or between dates.
+                     |
+                     |Always returns 200 with valid input due to streaming nature.
+                     |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                     |""".stripMargin
