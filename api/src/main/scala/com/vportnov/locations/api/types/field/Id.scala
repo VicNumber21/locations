@@ -13,6 +13,7 @@ object Id:
   type Underlying = model.Location.Id
 
   def apply(v: Id.Underlying): Id = new Id(v)
+  def example: Id = Id(meta.example)
 
   def asPath(label: String = meta.label): EndpointInput[Id] =
     path[Id.Underlying](label)

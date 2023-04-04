@@ -8,6 +8,8 @@ import sttp.tapir.json.circe._
 import sttp.model.StatusCode
 import java.util.UUID
 
+import com.vportnov.locations.api.types.field
+
 
 // TODO improve error response
 sealed trait Status:
@@ -82,9 +84,20 @@ object Status:
   given Decoder[NotFound] = deriveDecoder[NotFound]
 
 
-  case class Conflict(code: Int = 404, message: Option[String] = None, errorId: UUID) extends Error
+  case class Conflict(code: Int = 409, message: Option[String] = None, errorId: UUID) extends Error
   object Conflict:
-    def apply(message: String, errorId: UUID) = new Conflict(message = Some(message), errorId = errorId)
+    def apply(id: field.Id, errorId: UUID): Conflict = new Conflict(message = Some(meta.description(id)), errorId = errorId)
+    def apply(id: field.Id): Conflict = Conflict(id, UUID.randomUUID())
+    def example: Conflict = Conflict(field.Id.example)
+    def asStatusCodeWithJsonBody: EndpointOutput[Conflict] =
+        statusCode(StatusCode.Conflict).and(asJsonBody)
+    def asJsonBody: EndpointOutput[Conflict] =
+      jsonBody[Status.Conflict]
+        .description("Location cannot be created since another location with given id already exists")
+        .example(Status.Conflict.example)
+    object meta:
+      def description(id: field.Id) = s"Location with id '${id.v}' cannot be created since already exists."
+
 
   given Schema[Conflict] = Schema.derived[Conflict]
   given Encoder[Conflict] = deriveEncoder[Conflict]

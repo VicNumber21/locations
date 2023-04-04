@@ -15,7 +15,7 @@ import sttp.capabilities.fs2.Fs2Streams
 import fs2.Stream
 
 import com.vportnov.locations.model.StorageExt
-import com.vportnov.locations.api.types.{ request, response }
+import com.vportnov.locations.api.types.{ request, response, field }
 import com.vportnov.locations.utils.fs2stream.syntax._
 import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
@@ -81,11 +81,12 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
       case ServerError.Kind.NoSuchElement => response.Status.NotFound(se.message, se.uuid)
       case _ => commonErrors(error)
 
-  private def conflictError(error: Throwable) =
-    val se = ServerError.fromCause(error)
-    se.kind match
-      case ServerError.Kind.NoSuchElement => response.Status.Conflict(se.message, se.uuid)
-      case _ => commonErrors(error)
+  private def conflictError(id: field.Id) =
+    (error: Throwable) =>
+      val se = ServerError.fromCause(error)
+      se.kind match
+        case ServerError.Kind.NoSuchElement => response.Status.Conflict(id, se.uuid)
+        case _ => commonErrors(error)
 
   private def commonErrors(error: Throwable) =
     val se = ServerError.fromCause(error)
@@ -109,17 +110,16 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .in(request.Create.input)
     .errorOut(response.Create.error)
     .out(response.Create.output)
-    .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from, conflictError))
+    .serverLogicSuccess(request => reply(storage.createLocations(request.toModel), response.Location.from, commonErrors))
   
   private def createOne: ServerEndpoint[Any, F] = baseEndpoint
     .post
     .description("Create a single location.")
     .tag("Create")
     .in(request.CreateOne.input)
-    .errorOut(statusCode)
-    .out(response.Location.body.json)
-    .out(statusCode(StatusCode.Created))
-    .serverLogic(request => reply(storage.createLocation(request.toModel), response.Location.from, conflictError))
+    .errorOut(response.CreateOne.error)
+    .out(response.CreateOne.output)
+    .serverLogic(request => newReply(storage.createLocation(request.toModel), response.Location.from, conflictError(request.id)))
 
   private def get: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .get
