@@ -136,9 +136,9 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .description("Get particular location by given id.")
     .tag("Get")
     .in(request.GetOne.input)
-    .errorOut(statusCode)
-    .out(response.Location.body.json)
-    .serverLogic(request => reply(storage.getLocation(request.v), response.Location.from, notFoundError(request)))
+    .errorOut(response.GetOne.error)
+    .out(response.GetOne.output)
+    .serverLogic(request => newReply(storage.getLocation(request.v), response.Location.from, notFoundError(request)))
 
   private def update: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
     .put
