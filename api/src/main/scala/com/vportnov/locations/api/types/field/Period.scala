@@ -13,7 +13,7 @@ final case class Period(from: Period.Underlying, to: Period.Underlying):
   )
 
 object Period:
-  type Underlying = Option[ZonedDateTime] // TODO LocalDateTime could be better
+  type Underlying = Option[ZonedDateTime]
 
   def apply(from: Period.Underlying, to: Period.Underlying): Period = new Period(from, to)
 
