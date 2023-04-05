@@ -7,23 +7,15 @@ import sttp.tapir._
 import sttp.tapir.json.circe._
 import sttp.model.StatusCode
 import java.util.UUID
+import fs2.Stream
 
 import com.vportnov.locations.api.types.field
 
 
-// TODO improve error response
 sealed trait Status:
   val code: Int
   def isError: Boolean = code >= 400
   def toStatusCode: StatusCode = StatusCode(code)
-  def toJson: Json =
-    this match
-      case me: Status.Ok => me.asJson
-      case me: Status.NoContent => me.asJson
-      case me: Status.BadRequest => me.asJson
-      case me: Status.NotFound => me.asJson
-      case me: Status.Conflict => me.asJson
-      case me: Status.InternalServerError => me.asJson
     
 
 object Status:
@@ -36,10 +28,30 @@ object Status:
       statusCode(StatusCode.Ok).and(
       emptyOutputAs(Status.Ok())
         .description(description))
+    def asStatusCodeWithLocationStream[F[_]](description: String): EndpointOutput[Stream[F, Byte]] =
+      statusCode(StatusCode.Ok).and(
+      Location.body.stream[F].toEndpointIO
+        .description(description))
+    def asStatusCodeWithStatsStream[F[_]](description: String): EndpointOutput[Stream[F, Byte]] =
+      statusCode(StatusCode.Ok).and(
+      Stats.body.stream[F].toEndpointIO
+        .description(description))
+    def asStatusCodeWithLocationJson(description: String) =
+      statusCode(StatusCode.Ok).and(
+      Location.body.json
+        .description(description))
 
-  given Schema[Ok] = Schema.derived[Ok]
-  given Encoder[Ok] = deriveEncoder[Ok]
-  given Decoder[Ok] = deriveDecoder[Ok]
+
+  case class Created(code: Int = 201) extends Success
+  object Created:
+    def asStatusCodeWithLocationStream[F[_]](description: String): EndpointOutput[Stream[F, Byte]] =
+      statusCode(StatusCode.Created).and(
+      Location.body.stream[F].toEndpointIO
+        .description(description))
+    def asStatusCodeWithLocationJson(description: String) =
+      statusCode(StatusCode.Created).and(
+      Location.body.json
+        .description(description))
 
 
   case class NoContent(code: Int = 204) extends Success
@@ -49,45 +61,55 @@ object Status:
       emptyOutputAs(Status.NoContent())
         .description(description))
 
-  given Schema[NoContent] = Schema.derived[NoContent]
-  given Encoder[NoContent] = deriveEncoder[NoContent]
-  given Decoder[NoContent] = deriveDecoder[NoContent]
-
 
   sealed trait Error extends Status:
     val errorId: UUID
+    def toJson: Json =
+      this match
+        case me: Status.BadRequest => me.asJson
+        case me: Status.NotFound => me.asJson
+        case me: Status.Conflict => me.asJson
+        case me: Status.InternalServerError => me.asJson
 
 
   case class BadRequest(code: Int = 400, message: Option[String] = None, errorId: UUID) extends Error
   object BadRequest:
     def apply(message: String, errorId: UUID): BadRequest = new BadRequest(message = Some(message), errorId = errorId)
     def apply(message: String): BadRequest = BadRequest(message, UUID.randomUUID())
-    def example: BadRequest = BadRequest("Incorrect parameters of request. Details could be found in server log by errorId")
+    def example: BadRequest = BadRequest(meta.exampleMessage)
     def asStatusCodeWithJsonBody: EndpointOutput[BadRequest] =
         statusCode(StatusCode.BadRequest).and(asJsonBody)
     def asJsonBody: EndpointOutput[BadRequest] =
       jsonBody[Status.BadRequest]
-        .description("Invalid value of request parameter or body.")
+        .description(meta.description)
         .example(Status.BadRequest.example)
+    object meta:
+      def exampleMessage = "Invalid value of id"
+      def description = "Invalid value of request parameter or body.\n\nDetails could be found in server log by errorId."
 
+  // TODO add name and description to every error schema.
+  // Extra idea - failure and success payload may have a specific prefixes to group them in Schema section
   given Schema[BadRequest] = Schema.derived[BadRequest]
+    .name(Schema.SName("Failure: BadRequest"))
+
   given Encoder[BadRequest] = deriveEncoder[BadRequest]
   given Decoder[BadRequest] = deriveDecoder[BadRequest]
 
 
   case class NotFound(code: Int = 404, message: Option[String] = None, errorId: UUID) extends Error
   object NotFound:
-    def apply(id: field.Id, errorId: UUID): NotFound = new NotFound(message = Some(meta.description(id)), errorId = errorId)
+    def apply(id: field.Id, errorId: UUID): NotFound = new NotFound(message = Some(meta.message(id)), errorId = errorId)
     def apply(id: field.Id): NotFound = NotFound(id, UUID.randomUUID())
     def example: NotFound = NotFound(field.Id.example)
     def asStatusCodeWithJsonBody: EndpointOutput[NotFound] =
         statusCode(StatusCode.NotFound).and(asJsonBody)
     def asJsonBody: EndpointOutput[NotFound] =
       jsonBody[Status.NotFound]
-        .description("Location with given id does not exist.")
+        .description(meta.description)
         .example(Status.NotFound.example)
     object meta:
-      def description(id: field.Id) = s"Location with id '${id.v}' does not exist"
+      def message(id: field.Id) = s"Location with id '${id.v}' does not exist"
+      def description = "Location with given id does not exist."
 
   given Schema[NotFound] = Schema.derived[NotFound]
   given Encoder[NotFound] = deriveEncoder[NotFound]
@@ -96,17 +118,18 @@ object Status:
 
   case class Conflict(code: Int = 409, message: Option[String] = None, errorId: UUID) extends Error
   object Conflict:
-    def apply(id: field.Id, errorId: UUID): Conflict = new Conflict(message = Some(meta.description(id)), errorId = errorId)
+    def apply(id: field.Id, errorId: UUID): Conflict = new Conflict(message = Some(meta.message(id)), errorId = errorId)
     def apply(id: field.Id): Conflict = Conflict(id, UUID.randomUUID())
     def example: Conflict = Conflict(field.Id.example)
     def asStatusCodeWithJsonBody: EndpointOutput[Conflict] =
         statusCode(StatusCode.Conflict).and(asJsonBody)
     def asJsonBody: EndpointOutput[Conflict] =
       jsonBody[Status.Conflict]
-        .description("Location cannot be created since another location with given id already exists.")
+        .description(meta.description)
         .example(Status.Conflict.example)
     object meta:
-      def description(id: field.Id) = s"Location with id '${id.v}' cannot be created since already exists"
+      def message(id: field.Id) = s"Location with id '${id.v}' cannot be created since already exists"
+      def description = "Location cannot be created since another location with given id already exists."
 
 
   given Schema[Conflict] = Schema.derived[Conflict]
@@ -116,15 +139,18 @@ object Status:
 
   case class InternalServerError(code: Int = 500, message: Option[String] = None, errorId: UUID) extends Error
   object InternalServerError:
-    def apply(message: String, errorId: UUID): InternalServerError = new InternalServerError(message = Some(message), errorId = errorId)
-    def apply(message: String): InternalServerError = InternalServerError(message, UUID.randomUUID())
-    def example: InternalServerError = InternalServerError("Exception could be found in server log by errorId")
+    def apply(errorId: UUID): InternalServerError = new InternalServerError(message = Some(meta.message), errorId = errorId)
+    def apply(): InternalServerError = InternalServerError(UUID.randomUUID())
+    def example: InternalServerError = InternalServerError()
     def asStatusCodeWithJsonBody: EndpointOutput[InternalServerError] =
       statusCode(StatusCode.InternalServerError).and(asJsonBody)
     def asJsonBody: EndpointOutput[InternalServerError] =
       jsonBody[Status.InternalServerError]
-        .description("Generic server error.")
+        .description(meta.description)
         .example(Status.InternalServerError.example)
+    object meta:
+      def message = "Internal Server Error"
+      def description = "Default server-side error.\n\nDetails could be found in server log by errorId."
 
   given Schema[InternalServerError] = Schema.derived[InternalServerError]
   given Encoder[InternalServerError] = deriveEncoder[InternalServerError]

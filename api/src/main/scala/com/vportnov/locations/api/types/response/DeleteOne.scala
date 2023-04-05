@@ -3,7 +3,7 @@ package com.vportnov.locations.api.types.response
 import sttp.tapir._
 
 
-object Delete:
+object DeleteOne:
   def output =
     oneOf[Status](
       oneOfVariant(Status.NoContent.asStatusCodeWithEmptyBody(meta.description.NoContent)),
@@ -18,5 +18,5 @@ object Delete:
 
   object meta:
     object description:
-      val Ok = "No location with requested ids were found but it is treated as 'already removed'."
-      val NoContent = "At least one of locations was found and removed."
+      val Ok = "No location with given id was found but it is treated as 'already removed'."
+      val NoContent = "The location was found and removed."

@@ -25,7 +25,7 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
     ValuedEndpointOutput(response.Status.BadRequest.asJsonBody, response.Status.BadRequest(message))
 
   private def internalServerErrorResponse(message: String): ValuedEndpointOutput[response.Status.InternalServerError] =
-    ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, response.Status.InternalServerError(message))
+    ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, response.Status.InternalServerError())
   
   private def showResponse(reply: ServerResponse[_]): String = reply match
     case ServerResponse(code, _, _, Some(ValuedEndpointOutput(_, error: response.Status.Error))) =>
@@ -53,7 +53,7 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
     new ExceptionHandler[F]:
       override def apply(ctx: ExceptionContext)(implicit monad: sttp.monad.MonadError[F]): F[Option[ValuedEndpointOutput[_]]] =
         val error = ServerError.fromCause(ctx.e)
-        val errorResponse = response.Status.InternalServerError(error.message, error.uuid)
+        val errorResponse = response.Status.InternalServerError(error.uuid)
         log.error(error)(s"Exception when handling request: ${ctx.request.showShort}, by ${ctx.endpoint.showShort}")
           .flatMap { (x: Unit) =>
             Some(ValuedEndpointOutput(response.Status.InternalServerError.asStatusCodeWithJsonBody, errorResponse)).pure[F]

@@ -37,7 +37,7 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
   def swaggerEndpoints(title: String, version: String): List[ServerEndpoint[Fs2Streams[F], F]] =
     SwaggerInterpreter().fromEndpoints[F](serverEndpoints.map(_.endpoint), title, version)
   
-  private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O, errorMapper: Throwable => response.Status)
+  private def reply[SR, O](stream: Stream[F, SR], mapper: SR => O, errorMapper: Throwable => response.Status.Error)
                           (using encoder: io.circe.Encoder[O]): F[Stream[F, Byte]] =
     stream
       .map(mapper)
@@ -65,25 +65,25 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     case n if n > 0 => response.Status.NoContent()
     case strange => throw ServerError.Internal(s"Count could not be less than 0 (got ${strange})")
   
-  private def notFoundError(id: field.Id) =
+  private def notFoundError(id: field.Id): Throwable => response.Status.Error =
     (error: Throwable) =>
       val se = ServerError.fromCause(error)
       se.kind match
         case ServerError.Kind.NoSuchElement => response.Status.NotFound(id, se.uuid)
         case _ => commonErrors(error)
 
-  private def conflictError(id: field.Id) =
+  private def conflictError(id: field.Id): Throwable => response.Status.Error =
     (error: Throwable) =>
       val se = ServerError.fromCause(error)
       se.kind match
         case ServerError.Kind.NoSuchElement => response.Status.Conflict(id, se.uuid)
         case _ => commonErrors(error)
 
-  private def commonErrors(error: Throwable) =
+  private def commonErrors(error: Throwable): response.Status.Error =
     val se = ServerError.fromCause(error)
     se.kind match
       case ServerError.Kind.IllegalArgument => response.Status.BadRequest(se.message, se.uuid)
-      case _ => response.Status.InternalServerError(se.message, se.uuid)
+      case _ => response.Status.InternalServerError(se.uuid)
 
   private def baseEndpoint = endpoint
     .in("api" / "v1.0" / "locations")
@@ -156,8 +156,8 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     .description(HttpEndpoints.meta.description.deleteOne)
     .tag(HttpEndpoints.meta.tag.delete)
     .in(request.DeleteOne.input)
-    .errorOut(response.Delete.error)
-    .out(response.Delete.output)
+    .errorOut(response.DeleteOne.error)
+    .out(response.DeleteOne.output)
     .serverLogic(request => reply(storage.deleteLocation(request.v), deleteSuccess, commonErrors))
   
   private def stats: ServerEndpoint[Fs2Streams[F], F] = baseEndpoint
@@ -181,34 +181,30 @@ object HttpEndpoints:
       val stats = "Statistics"
 
     object description:
-      val create = """|Create locations in batch.
-                      |
-                      |Always returns 201 with valid input due to streaming nature.
-                      |However, not created enties are not sent back what should be treated as Conflict response.
-                      |
-                      |Also error body returns after 201 if error is detected after stream is established (see bodies for error cases)
-                      |""".stripMargin
+      val create = "Create locations in batch."
       val createOne = "Create a single location."
-      val get = """| Get list of locations: all, particular ids or created before or after or between dates.
+      val get = """|Get list of locations using the following options:
                    |
-                   |Always returns 200 with valid input due to streaming nature.
-                   |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                   |  - all (default)
+                   |
+                   |  - by particular ids (one ore more ids provided)
+                   |
+                   |  - created before given timestamp (to)
+                   |
+                   |  - created after given timestamp (from)
+                   |
+                   |  - created between given timestamps (from and to)
+                   |
+                   |UTC is used for timestamps.
                    |""".stripMargin
       val getOne = "Get particular location by given id."
-      val update = """|Update longitude and latitude of given locations in batch.
-                      |
-                      |Always returns 200 with valid input due to streaming nature.
-                      |However, not updated enties are not sent back what should be treated as NotFound response.
-                      |
-                      |Also error body returns after 200 if error is detected after stream is established (see bodies for error cases)
-                      |""".stripMargin
+      val update = "Update longitude and latitude of given locations in batch."
       val updateOne = "Update longitude and latitude of particular location."
-      val delete = "Delete list of given locations in batch."
+      val delete = "Delete list of locations with given ids in batch."
       val deleteOne = "Delete particular location by given id."
       val stats = """|Get statistic about count of created locations per day.
                      |
-                     |Statistic could be requested for all locations or created before or after or between dates.
+                     |UTC is used in for dates in request and response.
                      |
-                     |Always returns 200 with valid input due to streaming nature.
-                     |But error body returns after 200 if error is detected after stream is established (see bodies for error cases)
+                     |If request date contains time, it is automatically rounded to the beginning of the day in UTC.
                      |""".stripMargin

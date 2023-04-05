@@ -1,11 +1,10 @@
 package com.vportnov.locations.api.types.response
 
 import sttp.tapir._
-import sttp.model.StatusCode
 
 
 object GetOne:
-  def output = statusCode(StatusCode.Ok).and(Location.body.json)
+  def output = Status.Ok.asStatusCodeWithLocationJson(meta.description.Ok)
   
   def error =
     oneOf[Status](
@@ -13,3 +12,7 @@ object GetOne:
       oneOfVariant(Status.NotFound.asStatusCodeWithJsonBody),
       oneOfDefaultVariant(Status.InternalServerError.asStatusCodeWithJsonBody)
     )
+  
+  object meta:
+    object description:
+      val Ok = "Successful response with requested location."
