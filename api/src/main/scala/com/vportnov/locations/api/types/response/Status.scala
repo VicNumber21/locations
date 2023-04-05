@@ -9,7 +9,7 @@ import sttp.model.StatusCode
 import java.util.UUID
 import fs2.Stream
 
-import com.vportnov.locations.api.types.field
+import com.vportnov.locations.api.types.{ field, schema }
 
 
 sealed trait Status:
@@ -87,10 +87,8 @@ object Status:
       def exampleMessage = "Invalid value of id"
       def description = "Invalid value of request parameter or body.\n\nDetails could be found in server log by errorId."
 
-  // TODO add name and description to every error schema.
-  // Extra idea - failure and success payload may have a specific prefixes to group them in Schema section
   given Schema[BadRequest] = Schema.derived[BadRequest]
-    .name(Schema.SName("Failure: BadRequest"))
+    .name(schema.nameForError(BadRequest))
 
   given Encoder[BadRequest] = deriveEncoder[BadRequest]
   given Decoder[BadRequest] = deriveDecoder[BadRequest]
@@ -112,6 +110,8 @@ object Status:
       def description = "Location with given id does not exist."
 
   given Schema[NotFound] = Schema.derived[NotFound]
+    .name(schema.nameForError(NotFound))
+
   given Encoder[NotFound] = deriveEncoder[NotFound]
   given Decoder[NotFound] = deriveDecoder[NotFound]
 
@@ -133,6 +133,8 @@ object Status:
 
 
   given Schema[Conflict] = Schema.derived[Conflict]
+    .name(schema.nameForError(Conflict))
+
   given Encoder[Conflict] = deriveEncoder[Conflict]
   given Decoder[Conflict] = deriveDecoder[Conflict]
 
@@ -153,5 +155,7 @@ object Status:
       def description = "Default server-side error.\n\nDetails could be found in server log by errorId."
 
   given Schema[InternalServerError] = Schema.derived[InternalServerError]
+    .name(schema.nameForError(InternalServerError))
+
   given Encoder[InternalServerError] = deriveEncoder[InternalServerError]
   given Decoder[InternalServerError] = deriveDecoder[InternalServerError]

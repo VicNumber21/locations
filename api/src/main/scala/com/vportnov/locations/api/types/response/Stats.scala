@@ -4,6 +4,7 @@ import io.circe.{ Encoder, Decoder }
 import io.circe.generic.semiauto._
 import sttp.tapir._
 
+import com.vportnov.locations.api.types.schema
 import com.vportnov.locations.api.types.json._
 import com.vportnov.locations.api.types.field.{ Date, Count }
 import com.vportnov.locations.model
@@ -43,7 +44,7 @@ object Stats:
   import Count.given
 
   given Schema[Stats] = Schema.derived[Stats]
-    .name(Schema.SName(meta.schema.name))
+    .name(schema.nameForResponse(meta.schema.name))
     .description(meta.schema.description)
 
   given Encoder[Stats] = deriveEncoder[Stats]

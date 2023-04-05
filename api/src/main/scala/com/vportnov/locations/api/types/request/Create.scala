@@ -5,6 +5,7 @@ import io.circe.generic.semiauto._
 import sttp.tapir.Schema
 import sttp.tapir.json.circe.jsonBody
 
+import com.vportnov.locations.api.types.schema
 import com.vportnov.locations.api.types.field.{ Id, Longitude, Latitude, OptionalCreated }
 import com.vportnov.locations.model
 
@@ -26,7 +27,7 @@ object Create:
   import OptionalCreated.given
 
   given Schema[Location] = Schema.derived[Location]
-    .name(Schema.SName(meta.name))
+    .name(schema.nameForRequest(meta.name))
     .description(meta.description)
 
   given Encoder[Location] = deriveEncoder[Location]
