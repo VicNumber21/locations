@@ -22,11 +22,16 @@ trait LoggingIO[F[_]: Sync]:
       val parent = Thread.currentThread().getStackTrace()(4)
       stream
         .onFinalize(log.info(s"${parent.getMethodName()} stream is done"))
+        .logError
+
+    def logError: Stream[F, T] =
+      val parent = Thread.currentThread().getStackTrace()(4)
+      stream
         .failureToServerError
         .onError(logStreamError(s"Exception in ${parent}"))
 
   extension [T] (io: F[T])(using log: Logger[F])
-    def logWhenDone: F[T] =
+    def logError: F[T] =
       val parent = Thread.currentThread().getStackTrace()(4)
       io
         .failureToServerError

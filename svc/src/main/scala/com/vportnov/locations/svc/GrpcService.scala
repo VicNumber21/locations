@@ -15,26 +15,30 @@ import com.vportnov.locations.utils.LoggingIO
 final class GrpcService[F[_]: Async](storage: model.Storage[F]) extends grpc.LocationServiceFs2Grpc[F, Metadata] with LoggingIO[F]:
   def createLocations(locations: grpc.Locations, ctx: Metadata): Stream[F, grpc.LocationReply] =
     storage.createLocations(locations.toLocationsWithOptionalCreatedField)
-      .logWhenDone
+      .logError
       .packLocation
+      .logWhenDone
 
   def getLocations(query: grpc.Query, ctx: Metadata): Stream[F, grpc.LocationReply] =
     storage.getLocations(query.getPeriod.toModel, query.ids.toModel)
-      .logWhenDone
+      .logError
       .packLocation
+      .logWhenDone
 
   def updateLocations(locations: grpc.Locations, ctx: Metadata): Stream[F, grpc.LocationReply] =
     storage.updateLocations(locations.toLocationsWithoutCreatedField)
-      .logWhenDone
+      .logError
       .packLocation
+      .logWhenDone
 
   override def deleteLocations(ids: grpc.Ids, ctx: Metadata): F[grpc.CountReply] =
     storage.deleteLocations(ids.toModel)
-      .logWhenDone
+      .logError
       .packCount
+      .logError
 
   override def locationStats(period: grpc.Period, ctx: Metadata): Stream[F, grpc.LocationStatsReply] =
     storage.locationStats(period.toModel)
-      .logWhenDone
+      .logError
       .packLocationStats
-      // TODO should I log error after packedging?
+      .logWhenDone

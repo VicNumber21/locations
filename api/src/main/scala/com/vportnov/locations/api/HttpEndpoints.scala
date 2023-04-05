@@ -42,23 +42,22 @@ final class HttpEndpoints[F[_]: Async](storage: StorageExt[F]) extends  LoggingI
     stream
       .map(mapper)
       .map(_.asJson.noSpaces)
-      .logWhenDone
+      .logError
       .recover { error =>
         errorMapper(error).toJson.noSpaces
       }
       .toJsonArray
       .through(fs2.text.utf8.encode)
-      .pure[F]
       .logWhenDone
+      .pure[F]
 
   private def reply[SR, O](storageResponse: F[SR], mapper: SR => O, errorMapper: Throwable => response.Status): F[Either[response.Status, O]] =
-    val result = for
+    for
       unpacked <- storageResponse
         .map(mapper)
-        .logWhenDone
+        .logError
         .attempt
     yield unpacked.left.map(errorMapper)
-    result.logWhenDone
 
   private def deleteSuccess(count: Int): response.Status = count match
     case 0 => response.Status.Ok()
