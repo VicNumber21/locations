@@ -16,7 +16,7 @@ object Count:
     val underlyingValidator = Validator.positiveOrZero[Int]
     val validator = Validator.Mapped[Count, Count.Underlying](underlyingValidator, _.v)
 
-  given Schema[Count] = Schema.schemaForString.as[Count]
+  given Schema[Count] = Schema.schemaForInt.as[Count]
     .description(meta.description)
     .encodedExample(meta.example)
     .validate(meta.validator)
