@@ -132,6 +132,20 @@ lazy val svc =
         docker
       ).value
     )
+    .configs(IntegrationTest)
+    .settings(
+      Defaults.itSettings,
+      IntegrationTest / parallelExecution := false,
+      libraryDependencies ++=
+        Seq(
+          libs.testcontainersScalatest % IntegrationTest,
+          // TODO check that all deps needed
+          libs.scalatest % IntegrationTest,
+          libs.scalacheck % IntegrationTest,
+          libs.scalastick % IntegrationTest,
+          libs.doobieScalatest % IntegrationTest
+        )
+    )
     .enablePlugins(DockerPlugin)
     .enablePlugins(PackPlugin)
     .dependsOn(model)
