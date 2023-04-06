@@ -136,9 +136,11 @@ lazy val svc =
     .enablePlugins(PackPlugin)
     .dependsOn(model)
     .dependsOn(grpc)
+    .dependsOn(utils)
 
 lazy val locations =
   Project("locations", file("."))
+    .settings(settings.common)
     .aggregate(grpc, api, svc, model, utils)
 
 
@@ -150,7 +152,7 @@ lazy val settings =
       Seq(
         organization := "com.vportnov",
         version := "1.0.0",
-        scalaVersion := "3.2.1",
+        scalaVersion := "3.2.2",
         scalacOptions :=
           Seq(
             "-encoding", "utf8",
