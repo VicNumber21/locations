@@ -127,7 +127,7 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
       check(result.get)
   }
 
-  it should "create a valid query if id list contains several location id" in {
+  it should "create a valid query if id list contains several location ids" in {
     Given("ids contain a single location id")
       val ids: model.Location.Ids = List("loction123", "location456", "oneMoreLocation")
       ids should not be empty
@@ -297,6 +297,42 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     
     Then("the query is valid for database structure")
       a [RuntimeException] should be thrownBy check(result)
+  }
+
+  "DbStorage.sql.delete.locations" should "create a valid query if location id list contains a single value" in {
+    Given("location id list contains a single value")
+      val ids = List("location123")
+      ids should have length 1
+
+    When("delete.locations is called with such list")
+      val result = DbStorage.sql.delete.locations(ids)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "create a valid query if location id list contains several values" in {
+    Given("location id list contains several values")
+      val ids = List("location123", "location456", "location789")
+      ids should have length 3
+
+    When("delete.locations is called with such list")
+      val result = DbStorage.sql.delete.locations(ids)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "create a valid query if location id list is empty" in {
+    Given("location id list contains several values")
+      val ids = List.empty[model.Location.Id]
+      ids shouldBe empty
+
+    When("delete.locations is called with such list")
+      val result = DbStorage.sql.delete.locations(ids)
+    
+    Then("the query is valid for database structure")
+      check(result)
   }
 
   override def transactor: Transactor[IO] =
