@@ -29,9 +29,12 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
         fs2.Stream.raiseError(ServerError.IllegalArgument("Should not request both filters by ids and by dates"))
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
-    sql.update.locations(locations)
-      .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
-      .transact(tx)
+    for {
+      program <- fs2.Stream.eval(sql.update.locations(locations).pure[F]).rethrow
+      result <- program
+        .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
+        .transact(tx)
+    } yield result
 
   override def deleteLocations(ids: Location.Ids): F[Int] =
     for {
@@ -99,23 +102,26 @@ object DbStorage:
           .update
 
     object update:
-      def value(location: Location.WithoutCreatedField): Fragment =
+      def locations(locations: List[Location.WithoutCreatedField]): Either[Throwable, Update0] =
+        locations match
+          case List() => (new IllegalArgumentException("Location list must not be empty")).asLeft
+          case _ => sqlScript(locations).update.asRight
+
+      private def sqlScript(locations: List[Location.WithoutCreatedField]): Fragment =
+        fr"UPDATE locations AS l" ++
+        fr"SET location_longitude = loc.longitude, location_latitude = loc.latitude" ++
+        fr"FROM (" ++
+        update.values(locations) ++
+        fr") AS loc (id, longitude, latitude)" ++
+        fr"WHERE l.location_id = loc.id"
+
+      private def value(location: Location.WithoutCreatedField): Fragment =
         val Location.WithoutCreatedField(id, longitude, latitude) = location
         sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC))"
       
-      def values(locations: List[Location.WithoutCreatedField]): Fragment =
+      private def values(locations: List[Location.WithoutCreatedField]): Fragment =
         locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
 
-      def locations(locations: List[Location.WithoutCreatedField]): Update0 =
-        (
-          fr"UPDATE locations AS l" ++
-          fr"SET location_longitude = loc.longitude, location_latitude = loc.latitude" ++
-          fr"FROM (" ++
-          update.values(locations) ++
-          fr") AS loc (id, longitude, latitude)" ++
-          fr"WHERE l.location_id = loc.id"
-        )
-          .update
 
     object delete:
       def locations(ids: Location.Ids): Either[Throwable ,Update0] =

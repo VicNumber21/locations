@@ -266,8 +266,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("update.locations is called with such list")
       val result = DbStorage.sql.update.locations(locations)
     
-    Then("the query is valid for database structure")
-      check(result)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if location list contains several values" in {
@@ -284,8 +284,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("update.locations is called with such list")
       val result = DbStorage.sql.update.locations(locations)
     
-    Then("the query is valid for database structure")
-      check(result)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "not create a query if location list is empty" in {
@@ -296,8 +296,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("update.locations is called with such list")
       val result = DbStorage.sql.update.locations(locations)
     
-    Then("the query is valid for database structure")
-      a [RuntimeException] should be thrownBy check(result)
+    Then("error is returned")
+      result.left.value shouldBe a [IllegalArgumentException]
   }
 
   "DbStorage.sql.delete.locations" should "create a valid query if location id list contains a single value" in {
