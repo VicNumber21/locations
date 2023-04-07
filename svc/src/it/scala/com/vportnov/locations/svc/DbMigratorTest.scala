@@ -11,6 +11,8 @@ import org.flywaydb.core.api.FlywayException
 
 @DoNotDiscover
 class DbMigratorTest extends AnyDbSpec:
+  info("As a developer I need to verify that initial and subsequent migrations pass sucessfully")
+
   "DbMigrator" should "apply all sql scripts on the first run" in {
     Given("DbMigrator is running on clean database")
 

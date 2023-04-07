@@ -44,7 +44,6 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
   
 
 object DbStorage:
-  //TODO test sql
   object sql:
     object select:
       def locations(period: Period, ids: Location.Ids): Option[Query0[Location.WithCreatedField]] =
@@ -63,7 +62,7 @@ object DbStorage:
         (
           fr"SELECT" ++
             fr"CAST(CAST(location_created AS DATE) AS TIMESTAMP) AS created_date," ++
-            fr"COUNT(location_created) AS created_locations" ++
+            fr"CAST(COUNT(location_created) AS INTEGER) AS created_locations" ++
           fr"FROM locations" ++
           Fragments.whereAndOpt(byPeriod(period):_*) ++
           fr"GROUP BY created_date" ++
@@ -72,8 +71,8 @@ object DbStorage:
           .query[Location.Stats]
 
       def byPeriod(period: Period): List[Option[Fragment]] = 
-        val from = period.from.map(from => fr"location_created >= CAST($from AS DATE)")
-        val to = period.to.map(to => fr"location_created < (CAST($to AS DATE) + CAST('1 day' AS INTERVAL))")
+        val from = period.from.map(from => fr"location_created >= CAST(${from.toLocalDate} AS DATE)")
+        val to = period.to.map(to => fr"location_created < (CAST(${to.toLocalDate} AS DATE) + CAST('1 day' AS INTERVAL))")
         List(from, to)
 
       def byIds(ids: Location.Ids): Option[Fragment] = 

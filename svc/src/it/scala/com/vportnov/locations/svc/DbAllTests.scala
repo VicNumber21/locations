@@ -2,7 +2,6 @@ package com.vportnov.locations.svc
 
 import org.scalatest.Suites
 
-import com.vportnov.locations.svc.DbMigratorTest
 
 // Db integration tests are running on the same container to make it faster.
 // The problem is that at the moment there is no such solution from testcontainers.
@@ -15,5 +14,6 @@ import com.vportnov.locations.svc.DbMigratorTest
 // marked by @DoNotDiscover in source file to prevent double run.
 
 class DbAllTests extends Suites(
-  new DbMigratorTest
+  new DbMigratorTest,
+  new DbStorageSqlTest
 )

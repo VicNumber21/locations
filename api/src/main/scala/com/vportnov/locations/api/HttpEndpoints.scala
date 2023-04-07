@@ -188,20 +188,30 @@ object HttpEndpoints:
                    |
                    |  - by particular ids (one ore more ids provided)
                    |
-                   |  - created before given timestamp (to)
+                   |  - created before given date inclusively (to)
                    |
-                   |  - created after given timestamp (from)
+                   |  - created after given date inclusively (from)
                    |
-                   |  - created between given timestamps (from and to)
+                   |  - created between given dates inclusively (from and to)
                    |
-                   |UTC is used for timestamps.
+                   | UTC is used in for dates in request and response.
+                   |
+                   |If request date contains time, it is automatically rounded to the beginning of the day in UTC.
                    |""".stripMargin
       val getOne = "Get particular location by given id."
       val update = "Update longitude and latitude of given locations in batch."
       val updateOne = "Update longitude and latitude of particular location."
       val delete = "Delete list of locations with given ids in batch."
       val deleteOne = "Delete particular location by given id."
-      val stats = """|Get statistic about count of created locations per day.
+      val stats = """|Get statistic about count of created locations per day using the following options:
+                     |
+                     |  - count all locations (default)
+                     |
+                     |  - count just created before given date inclusively (to)
+                     |
+                     |  - count just created after given date inclusively (from)
+                     |
+                     |  - count created between given dates inclusively (from and to)
                      |
                      |UTC is used in for dates in request and response.
                      |
