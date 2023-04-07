@@ -17,9 +17,12 @@ import com.vportnov.locations.utils.ServerError
 final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
   import DbStorage._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
-    sql.insert.locations(locations)
-      .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
-      .transact(tx)
+    for {
+      program <- fs2.Stream.eval(sql.insert.locations(locations).pure[F]).rethrow
+      result <- program
+        .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
+        .transact(tx)
+    } yield result
 
   override def getLocations(period: Period, ids: Location.Ids): LocationStream[F] =
     sql.select.locations(period, ids) match
@@ -84,22 +87,24 @@ object DbStorage:
         ids.toNel.map(nelIds => Fragments.in(fr"location_id", nelIds))
 
     object insert:
-      def value(location: Location.WithOptionalCreatedField): Fragment = location match
+      def locations(locations: List[Location.WithOptionalCreatedField]): Either[Throwable ,Update0] =
+        locations match
+          case List() => (new IllegalArgumentException("Location list must not be empty")).asLeft
+          case _ => sqlScript(locations).update.asRight
+
+      private def sqlScript(locations: List[Location.WithOptionalCreatedField]): Fragment =
+        fr"INSERT INTO locations (location_id, location_longitude, location_latitude, location_created)" ++
+        values(locations) ++
+        fr"ON CONFLICT (location_id) DO NOTHING"
+
+      private def value(location: Location.WithOptionalCreatedField): Fragment = location match
         case Location.WithOptionalCreatedField(id, longitude, latitude, Some(created)) =>
           sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC), CAST($created AS TIMESTAMP))"
         case Location.WithOptionalCreatedField(id, longitude, latitude, None) =>
           sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC), CURRENT_TIMESTAMP)"
       
-      def values(locations: List[Location.WithOptionalCreatedField]): Fragment =
+      private def values(locations: List[Location.WithOptionalCreatedField]): Fragment =
         locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
-
-      def locations(locations: List[Location.WithOptionalCreatedField]): Update0 =
-        (
-          fr"INSERT INTO locations (location_id, location_longitude, location_latitude, location_created)" ++
-          values(locations) ++
-          fr"ON CONFLICT (location_id) DO NOTHING"
-        )
-          .update
 
     object update:
       def locations(locations: List[Location.WithoutCreatedField]): Either[Throwable, Update0] =
