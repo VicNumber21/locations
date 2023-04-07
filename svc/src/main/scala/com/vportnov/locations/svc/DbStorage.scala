@@ -61,21 +61,7 @@ object DbStorage:
             sqlScriptLocations(period, ids).query[Location.WithCreatedField].asRight
       
       def stats(period: Period): Query0[Location.Stats] =
-        (
-          fr"SELECT" ++
-            fr"CAST(CAST(location_created AS DATE) AS TIMESTAMP) AS created_date," ++
-            fr"CAST(COUNT(location_created) AS INTEGER) AS created_locations" ++
-          fr"FROM locations" ++
-          Fragments.whereAndOpt(byPeriod(period):_*) ++
-          fr"GROUP BY created_date" ++
-          fr"ORDER BY created_date"
-        )
-          .query[Location.Stats]
-
-      private def sqlScriptLocations(period: Period, ids: Location.Ids): Fragment =
-        fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
-        fr"FROM locations" ++
-        Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*)
+        sqlScriptStats(period).query[Location.Stats]
 
       def byPeriod(period: Period): List[Option[Fragment]] = 
         val from = period.from.map(from => fr"location_created >= CAST(${from.toLocalDate} AS DATE)")
@@ -84,6 +70,20 @@ object DbStorage:
 
       def byIds(ids: Location.Ids): Option[Fragment] = 
         ids.toNel.map(nelIds => Fragments.in(fr"location_id", nelIds))
+
+      private def sqlScriptLocations(period: Period, ids: Location.Ids): Fragment =
+        fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
+        fr"FROM locations" ++
+        Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*)
+
+      private def sqlScriptStats(period: Period): Fragment =
+        fr"SELECT" ++
+          fr"CAST(CAST(location_created AS DATE) AS TIMESTAMP) AS created_date," ++
+          fr"CAST(COUNT(location_created) AS INTEGER) AS created_locations" ++
+        fr"FROM locations" ++
+        Fragments.whereAndOpt(byPeriod(period):_*) ++
+        fr"GROUP BY created_date" ++
+        fr"ORDER BY created_date"
 
 
     object insert:
