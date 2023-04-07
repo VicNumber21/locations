@@ -194,5 +194,68 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
       check(result)
   }
 
+  "DbStorage.sql.insert.locations" should "create a valid query if location list contains a single value without a created date" in {
+    Given("location list contains a single value without a created date")
+      val locations = List(model.Location.WithOptionalCreatedField("location123", 0, 0, None))
+      locations should have length 1
+      locations.head.created shouldBe empty
+
+    When("insert.locations is called with such list")
+      val result = DbStorage.sql.insert.locations(locations)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "create a valid query if location list contains a single value with a created date" in {
+    Given("location list contains a single value with a created date")
+      val locations = List(model.Location.WithOptionalCreatedField("location123", 0, 0, Some(LocalDateTime.now())))
+      locations should have length 1
+      locations.head.created should not be empty
+
+    When("insert.locations is called with such list")
+      val result = DbStorage.sql.insert.locations(locations)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "create a valid query if location list contains several values with mixed state of created date" in {
+    Given("location list contains several values")
+      val locations =
+        List(
+          model.Location.WithOptionalCreatedField("location123", 0, 0, Some(LocalDateTime.now())),
+          model.Location.WithOptionalCreatedField("location456", -3, 5, None),
+          model.Location.WithOptionalCreatedField("location789", 180, 90, None)
+        )
+
+      locations should have length 3
+
+    And("some of them have a create date")
+      locations.head.created should not be empty
+
+    And("some of them don't have a create date")
+      locations.tail.head.created shouldBe empty
+      locations.tail.tail.head.created shouldBe empty
+
+    When("insert.locations is called with such list")
+      val result = DbStorage.sql.insert.locations(locations)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "not create a query if location list is empty" in {
+    Given("location list is empty")
+      val locations = List()
+      locations shouldBe empty
+
+    When("insert.locations is called with such list")
+      val result = DbStorage.sql.insert.locations(locations)
+    
+    Then("the query is valid for database structure")
+      a [RuntimeException] should be thrownBy check(result)
+  }
+
   override def transactor: Transactor[IO] =
   Transactor.fromDriverManager[IO](db.config.driver, db.config.userUrl, db.config.user.login, db.config.user.password)
