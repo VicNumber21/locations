@@ -13,6 +13,7 @@ import doobie.util.transactor.Transactor
 import java.time.LocalDateTime
 
 import com.vportnov.locations.model
+import com.vportnov.locations.utils.ServerError
 
 
 @DoNotDiscover
@@ -30,8 +31,9 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("None is returned")
-      result shouldBe None
+    Then("illegal argument error is returned")
+      result.left.value shouldBe a [ServerError]
+      result.left.value.asInstanceOf[ServerError].kind shouldBe ServerError.Kind.IllegalArgument
   }
 
   it should "create a valid query if period and ids are empty" in {
@@ -45,11 +47,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if period has 'from' date" in {
@@ -64,11 +63,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if period has 'to' date" in {
@@ -83,11 +79,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if period has both 'from' and 'to' dates" in {
@@ -102,11 +95,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if id list contains a single location id" in {
@@ -121,11 +111,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if id list contains several location ids" in {
@@ -140,11 +127,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("select.locations is called with such arguments")
       val result = DbStorage.sql.select.locations(period, ids)
 
-    Then("some query is returned")
-      result should not be empty
-
-    And("the query is valid for database structure")
-      check(result.get)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   "DbStorage.sql.select.stats" should "create a valid query if period is empty" in {
@@ -254,8 +238,9 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("insert.locations is called with such list")
       val result = DbStorage.sql.insert.locations(locations)
     
-    Then("error is returned")
-      result.left.value shouldBe a [IllegalArgumentException]
+    Then("illegal argument error is returned")
+      result.left.value shouldBe a [ServerError]
+      result.left.value.asInstanceOf[ServerError].kind shouldBe ServerError.Kind.IllegalArgument
   }
 
   "DbStorage.sql.update.locations" should "create a valid query if location list contains a single value" in {
@@ -296,8 +281,9 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("update.locations is called with such list")
       val result = DbStorage.sql.update.locations(locations)
     
-    Then("error is returned")
-      result.left.value shouldBe a [IllegalArgumentException]
+    Then("illegal argument error is returned")
+      result.left.value shouldBe a [ServerError]
+      result.left.value.asInstanceOf[ServerError].kind shouldBe ServerError.Kind.IllegalArgument
   }
 
   "DbStorage.sql.delete.locations" should "create a valid query if location id list contains a single value" in {
@@ -332,8 +318,9 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("delete.locations is called with such list")
       val result = DbStorage.sql.delete.locations(ids)
     
-    Then("error is returned")
-      result.left.value shouldBe a [IllegalArgumentException]
+    Then("illegal argument error is returned")
+      result.left.value shouldBe a [ServerError]
+      result.left.value.asInstanceOf[ServerError].kind shouldBe ServerError.Kind.IllegalArgument
   }
 
   override def transactor: Transactor[IO] =

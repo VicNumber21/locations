@@ -25,11 +25,10 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
     } yield result
 
   override def getLocations(period: Period, ids: Location.Ids): LocationStream[F] =
-    sql.select.locations(period, ids) match
-      case Some(query) =>
-        query.stream.transact(tx)
-      case None =>
-        fs2.Stream.raiseError(ServerError.IllegalArgument("Should not request both filters by ids and by dates"))
+    for {
+      program <- fs2.Stream.eval(sql.select.locations(period, ids).pure[F]).rethrow
+      result <- program.stream.transact(tx)
+    } yield result
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     for {
@@ -54,17 +53,12 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
 object DbStorage:
   object sql:
     object select:
-      def locations(period: Period, ids: Location.Ids): Option[Query0[Location.WithCreatedField]] =
-        val query = if !period.isEmpty && !ids.isEmpty
-          then None
-        else
-          Some(
-            fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
-            fr"FROM locations" ++
-            Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*)
-          )
-        
-        query.map(q => q.query[Location.WithCreatedField])
+      def locations(period: Period, ids: Location.Ids): Either[Throwable, Query0[Location.WithCreatedField]] =
+        (period, ids) match
+          case (period, ids) if !period.isEmpty && !ids.isEmpty =>
+            ServerError.IllegalArgument("Should not request both filters by ids and by dates").asLeft
+          case (period, ids) =>
+            sqlScriptLocations(period, ids).query[Location.WithCreatedField].asRight
       
       def stats(period: Period): Query0[Location.Stats] =
         (
@@ -78,6 +72,11 @@ object DbStorage:
         )
           .query[Location.Stats]
 
+      private def sqlScriptLocations(period: Period, ids: Location.Ids): Fragment =
+        fr"SELECT location_id, location_longitude, location_latitude, location_created" ++
+        fr"FROM locations" ++
+        Fragments.whereAndOpt((byIds(ids) :: byPeriod(period)):_*)
+
       def byPeriod(period: Period): List[Option[Fragment]] = 
         val from = period.from.map(from => fr"location_created >= CAST(${from.toLocalDate} AS DATE)")
         val to = period.to.map(to => fr"location_created < (CAST(${to.toLocalDate} AS DATE) + CAST('1 day' AS INTERVAL))")
@@ -86,10 +85,11 @@ object DbStorage:
       def byIds(ids: Location.Ids): Option[Fragment] = 
         ids.toNel.map(nelIds => Fragments.in(fr"location_id", nelIds))
 
+
     object insert:
       def locations(locations: List[Location.WithOptionalCreatedField]): Either[Throwable ,Update0] =
         locations match
-          case List() => (new IllegalArgumentException("Location list must not be empty")).asLeft
+          case List() => ServerError.IllegalArgument("Location list must not be empty").asLeft
           case _ => sqlScript(locations).update.asRight
 
       private def sqlScript(locations: List[Location.WithOptionalCreatedField]): Fragment =
@@ -109,7 +109,7 @@ object DbStorage:
     object update:
       def locations(locations: List[Location.WithoutCreatedField]): Either[Throwable, Update0] =
         locations match
-          case List() => (new IllegalArgumentException("Location list must not be empty")).asLeft
+          case List() => ServerError.IllegalArgument("Location list must not be empty").asLeft
           case _ => sqlScript(locations).update.asRight
 
       private def sqlScript(locations: List[Location.WithoutCreatedField]): Fragment =
@@ -131,7 +131,7 @@ object DbStorage:
     object delete:
       def locations(ids: Location.Ids): Either[Throwable ,Update0] =
         ids match
-          case List() => (new IllegalArgumentException("Ids list must not be empty")).asLeft
+          case List() => ServerError.IllegalArgument("Ids list must not be empty").asLeft
           case _ => sqlScript(ids).update.asRight
 
       private def sqlScript(ids: Location.Ids): Fragment = 
