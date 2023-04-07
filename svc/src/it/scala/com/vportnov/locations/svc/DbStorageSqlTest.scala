@@ -1,6 +1,7 @@
 package com.vportnov.locations.svc
 
 import org.scalatest.DoNotDiscover
+import org.scalatest.EitherValues._
 import org.scalatest.matchers.should.Matchers._
 
 import cats.effect.IO
@@ -307,8 +308,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("delete.locations is called with such list")
       val result = DbStorage.sql.delete.locations(ids)
     
-    Then("the query is valid for database structure")
-      check(result)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if location id list contains several values" in {
@@ -319,8 +320,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("delete.locations is called with such list")
       val result = DbStorage.sql.delete.locations(ids)
     
-    Then("the query is valid for database structure")
-      check(result)
+    Then("the query is returned which is valid for database structure")
+      check(result.value)
   }
 
   it should "create a valid query if location id list is empty" in {
@@ -331,8 +332,8 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
     When("delete.locations is called with such list")
       val result = DbStorage.sql.delete.locations(ids)
     
-    Then("the query is valid for database structure")
-      check(result)
+    Then("error is returned")
+      result.left.value shouldBe a [IllegalArgumentException]
   }
 
   override def transactor: Transactor[IO] =

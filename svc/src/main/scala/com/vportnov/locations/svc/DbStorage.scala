@@ -3,6 +3,7 @@ package com.vportnov.locations.svc
 import cats.effect.{ Sync, Async }
 import cats.data.NonEmptyList
 import cats.implicits._
+import cats.syntax.all._
 
 import doobie._
 import doobie.implicits._
@@ -33,9 +34,10 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
       .transact(tx)
 
   override def deleteLocations(ids: Location.Ids): F[Int] =
-    if ids.isEmpty
-      then Sync[F].raiseError(ServerError.IllegalArgument("Ids list must not be empty"))
-      else sql.delete.locations(ids) .run .transact(tx)
+    for {
+      program <- sql.delete.locations(ids).liftTo[F]
+      count <- program.run.transact(tx)
+    } yield count
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)
@@ -116,9 +118,11 @@ object DbStorage:
           .update
 
     object delete:
-      def locations(ids: Location.Ids): Update0 =
-        (
-          fr"DELETE FROM locations" ++
+      def locations(ids: Location.Ids): Either[Throwable ,Update0] =
+        ids match
+          case List() => (new IllegalArgumentException("Ids list must not be empty")).asLeft
+          case _ => sqlScript(ids).update.asRight
+
+      private def sqlScript(ids: Location.Ids): Fragment = 
+        fr"DELETE FROM locations" ++
           Fragments.whereAndOpt(select.byIds(ids))
-        )
-          .update
