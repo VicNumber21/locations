@@ -2,7 +2,7 @@ package com.vportnov.locations.api.types.request
 
 import io.circe.{ Encoder, Decoder }
 import io.circe.generic.semiauto._
-import sttp.tapir.Schema
+import sttp.tapir.{ Schema, Validator }
 import sttp.tapir.json.circe.jsonBody
 
 import com.vportnov.locations.api.types.schema
@@ -33,5 +33,5 @@ object Create:
   given Encoder[Location] = deriveEncoder[Location]
   given Decoder[Location] = deriveDecoder[Location]
 
-  val body = jsonBody[List[Create.Location]].mapTo[Create]
+  val body = jsonBody[List[Create.Location]].validate(Validator.nonEmpty).mapTo[Create]
   val input = body
