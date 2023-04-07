@@ -81,9 +81,9 @@ object DbStorage:
     object insert:
       def value(location: Location.WithOptionalCreatedField): Fragment = location match
         case Location.WithOptionalCreatedField(id, longitude, latitude, Some(created)) =>
-          sql"($id, $longitude, $latitude, $created)"
+          sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC), CAST($created AS TIMESTAMP))"
         case Location.WithOptionalCreatedField(id, longitude, latitude, None) =>
-          sql"($id, $longitude, $latitude, CURRENT_TIMESTAMP)"
+          sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC), CURRENT_TIMESTAMP)"
       
       def values(locations: List[Location.WithOptionalCreatedField]): Fragment =
         locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
