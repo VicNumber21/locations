@@ -99,7 +99,7 @@ object DbStorage:
     object update:
       def value(location: Location.WithoutCreatedField): Fragment =
         val Location.WithoutCreatedField(id, longitude, latitude) = location
-        sql"($id, $longitude, $latitude)"
+        sql"(CAST($id AS VARCHAR), CAST($longitude AS NUMERIC), CAST($latitude AS NUMERIC))"
       
       def values(locations: List[Location.WithoutCreatedField]): Fragment =
         locations.map(value).foldSmash(fr"VALUES", fr",", fr"")
@@ -107,11 +107,11 @@ object DbStorage:
       def locations(locations: List[Location.WithoutCreatedField]): Update0 =
         (
           fr"UPDATE locations AS l" ++
-          fr"SET location_longitude = location.longitude, location_latitude = location.latitude" ++
+          fr"SET location_longitude = loc.longitude, location_latitude = loc.latitude" ++
           fr"FROM (" ++
           update.values(locations) ++
-          fr") AS location (id, longitude, latitude)" ++
-          fr"WHERE l.location_id = location.id"
+          fr") AS loc (id, longitude, latitude)" ++
+          fr"WHERE l.location_id = loc.id"
         )
           .update
 

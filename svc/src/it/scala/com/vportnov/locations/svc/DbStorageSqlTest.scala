@@ -257,5 +257,47 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
       a [RuntimeException] should be thrownBy check(result)
   }
 
+  "DbStorage.sql.update.locations" should "create a valid query if location list contains a single value" in {
+    Given("location list contains a single value")
+      val locations = List(model.Location.WithoutCreatedField("location123", 0, 0))
+      locations should have length 1
+
+    When("update.locations is called with such list")
+      val result = DbStorage.sql.update.locations(locations)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "create a valid query if location list contains several values" in {
+    Given("location list contains several values")
+      val locations =
+        List(
+          model.Location.WithoutCreatedField("location123", 0, 0),
+          model.Location.WithoutCreatedField("location456", -3, 5),
+          model.Location.WithoutCreatedField("location789", 180, 90)
+        )
+
+      locations should have length 3
+
+    When("update.locations is called with such list")
+      val result = DbStorage.sql.update.locations(locations)
+    
+    Then("the query is valid for database structure")
+      check(result)
+  }
+
+  it should "not create a query if location list is empty" in {
+    Given("location list is empty")
+      val locations = List()
+      locations shouldBe empty
+
+    When("update.locations is called with such list")
+      val result = DbStorage.sql.update.locations(locations)
+    
+    Then("the query is valid for database structure")
+      a [RuntimeException] should be thrownBy check(result)
+  }
+
   override def transactor: Transactor[IO] =
   Transactor.fromDriverManager[IO](db.config.driver, db.config.userUrl, db.config.user.login, db.config.user.password)
