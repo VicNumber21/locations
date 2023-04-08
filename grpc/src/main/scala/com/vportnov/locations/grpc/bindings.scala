@@ -96,13 +96,13 @@ extension (location: model.Location.WithoutCreatedField)
 
 extension (l: grpc.Location)
   def toLocationWithCreatedField: model.Location.WithCreatedField =
-    model.Location.WithCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.getCreated.toModel)
+    model.Location(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.getCreated.toModel)
 
   def toLocationWithOptionalCreatedField: model.Location.WithOptionalCreatedField =
-    model.Location.WithOptionalCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.created.toModel)
+    model.Location(l.id, l.getLongitude.toModel, l.getLatitude.toModel, l.created.toModel)
 
   def toLocationWithoutCreatedField: model.Location.WithoutCreatedField =
-    model.Location.WithoutCreatedField(l.id, l.getLongitude.toModel, l.getLatitude.toModel)
+    model.Location(l.id, l.getLongitude.toModel, l.getLatitude.toModel)
 
 extension[T <: model.Location.Base] (locations: List[T])
   def toMessage: grpc.Locations = 
