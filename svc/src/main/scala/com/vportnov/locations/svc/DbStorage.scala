@@ -12,13 +12,14 @@ import doobie.postgres.implicits._
 import com.vportnov.locations.svc.Config
 import com.vportnov.locations.model._
 import com.vportnov.locations.utils.ServerError
+import com.vportnov.locations.utils.fs2stream.syntax._
 
 
 final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
   import DbStorage._
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
     for {
-      program <- fs2.Stream.eval(sql.insert.locations(locations).pure[F]).rethrow
+      program <- sql.insert.locations(locations).liftToStream
       result <- program
         .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
         .transact(tx)
@@ -26,13 +27,13 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
 
   override def getLocations(period: Period, ids: Location.Ids): LocationStream[F] =
     for {
-      program <- fs2.Stream.eval(sql.select.locations(period, ids).pure[F]).rethrow
+      program <- sql.select.locations(period, ids).liftToStream
       result <- program.stream.transact(tx)
     } yield result
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     for {
-      program <- fs2.Stream.eval(sql.update.locations(locations).pure[F]).rethrow
+      program <- sql.update.locations(locations).liftToStream
       result <- program
         .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
         .transact(tx)

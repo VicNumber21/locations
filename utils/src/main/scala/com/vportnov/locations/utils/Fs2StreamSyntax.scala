@@ -17,3 +17,7 @@ object syntax:
       val prefix = Stream.eval("[".pure[F])
       val suffix = Stream.eval("]".pure[F])
       prefix ++ stream.intersperse(",") ++ suffix
+
+  extension [F[_]: Sync, T](either: Either[Throwable, T])
+    def liftToStream: fs2.Stream[F, T] =
+      either.liftTo
