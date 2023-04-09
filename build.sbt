@@ -24,6 +24,9 @@ lazy val model =
         libs.fs2Core
       )
     )
+    .settings(
+      libraryDependencies += libs.scalatest % Test
+    )
     .dependsOn(utils)
 
 lazy val grpc =
