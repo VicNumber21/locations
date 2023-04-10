@@ -36,9 +36,10 @@ lazy val grpc =
       scalapbCodeGeneratorOptions += CodeGeneratorOption.FlatPackage
     )
     .settings(
-      libraryDependencies ++= Seq(
-        libs.scalapbRuntime % ProtobufConfig
+      libraryDependencies += libs.scalapbRuntime % ProtobufConfig
       )
+    .settings(
+      libraryDependencies += libs.scalatest % Test
     )
     .enablePlugins(Fs2Grpc)
     .dependsOn(model)

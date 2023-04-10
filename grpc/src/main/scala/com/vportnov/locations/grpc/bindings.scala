@@ -14,13 +14,13 @@ import com.vportnov.locations.utils.ServerError
 
 
 
-extension (timestamp: LocalDateTime)
+extension (timestamp: model.Location.Timestamp)
   def toMessage: Timestamp =
     val utc = timestamp.atZone(ZoneOffset.UTC)
     Timestamp(utc.toEpochSecond, utc.getNano)
 
 extension (timestamp: Timestamp)
-  def toModel: LocalDateTime =
+  def toModel: model.Location.Timestamp =
     LocalDateTime.ofEpochSecond(timestamp.seconds, timestamp.nanos, ZoneOffset.UTC)
 
 extension (timestamp: model.Location.OptionalTimestamp)
@@ -47,10 +47,10 @@ extension (ids: grpc.Ids)
   def toModel: model.Location.Ids =
     ids.value.toList
 
-extension (ids: Option[grpc.Ids])
-  def toModel: model.Location.Ids = ids match
+extension (maybeIds: Option[grpc.Ids])
+  def toModel: model.Location.Ids = maybeIds match
     case None => List.empty
-    case some => some.get.toModel
+    case Some(ids) => ids.toModel
 
 extension (stats: model.Location.Stats)
   def toMessage: grpc.LocationStats =
@@ -113,6 +113,9 @@ extension[T <: model.Location.Base] (locations: List[T])
     })
 
 extension (locations: grpc.Locations)
+  def toLocationsWithCreatedField: List[model.Location.WithCreatedField] =
+    locations.list.toList.map(_.toLocationWithCreatedField)
+
   def toLocationsWithOptionalCreatedField: List[model.Location.WithOptionalCreatedField] =
     locations.list.toList.map(_.toLocationWithOptionalCreatedField)
 
