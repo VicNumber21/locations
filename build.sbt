@@ -1,5 +1,6 @@
 import sys.process._
 import sbt.Keys._
+import sbt._
 
 import sbtprotoc.ProtocPlugin.ProtobufConfig
 
@@ -136,6 +137,13 @@ lazy val svc =
         docker
       ).value
     )
+    .settings(
+      libraryDependencies += libs.scalatest % Test,
+      Test / testGrouping := splitToGroupsRunningInSeparateForks(
+        (Test / definedTests).value,
+        Defaults.forkOptionsTask.value
+      )
+    )
     .configs(IntegrationTest)
     .settings(
       Defaults.itSettings,
@@ -163,6 +171,15 @@ lazy val locations =
 
 
 lazy val build = taskKey[Unit]("production build sequence")
+
+def splitToGroupsRunningInSeparateForks(testDefs: Seq[TestDefinition], forkOpts: ForkOptions) = {
+  val (forkedTests, usualTests) = testDefs.partition(test => test.name.endsWith("TestInFork"))
+  val commonTestGroup = Tests.Group("Sungle VM tests", usualTests, Tests.SubProcess(forkOpts))
+  val forkedTestsGroups = forkedTests.map { test =>
+    Tests.Group(test.name, Seq(test), Tests.SubProcess(forkOpts))
+  }
+  Seq(commonTestGroup) ++ forkedTestsGroups
+}
 
 lazy val settings =
   new {
