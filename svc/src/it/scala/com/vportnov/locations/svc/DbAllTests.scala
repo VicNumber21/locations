@@ -15,5 +15,6 @@ import org.scalatest.Suites
 
 class DbAllTests extends Suites(
   new DbMigratorTest,
+  new DbStructureTest,
   new DbStorageSqlTest
 )

@@ -38,7 +38,7 @@ lazy val grpc =
     )
     .settings(
       libraryDependencies += libs.scalapbRuntime % ProtobufConfig
-      )
+    )
     .settings(
       libraryDependencies += libs.scalatest % Test
     )
@@ -151,10 +151,8 @@ lazy val svc =
       libraryDependencies ++=
         Seq(
           libs.testcontainersScalatest % IntegrationTest,
-          // TODO check that all deps needed
           libs.scalatest % IntegrationTest,
           libs.scalacheck % IntegrationTest,
-          libs.scalastick % IntegrationTest,
           libs.doobieScalatest % IntegrationTest
         )
     )
@@ -247,7 +245,6 @@ lazy val libs =
     val pureConfig = "com.github.pureconfig" %% "pureconfig-core" % version.pureConfig
 
     val scalacheck = "org.scalatestplus" %% "scalacheck-1-17" % version.scalacheck
-    val scalastick = "org.scalactic" %% "scalactic" % version.scalatest
     val scalatest = "org.scalatest" %% "scalatest" % version.scalatest
 
     val scalapbRuntime = "com.thesamet.scalapb" %% "scalapb-runtime" % version.scalapbRuntime
