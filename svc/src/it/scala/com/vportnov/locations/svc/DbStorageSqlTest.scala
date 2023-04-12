@@ -324,4 +324,4 @@ class DbStorageSqlTest extends AnyDbSpec with IOChecker:
   }
 
   override def transactor: Transactor[IO] =
-  Transactor.fromDriverManager[IO](db.config.driver, db.config.userUrl, db.config.user.login, db.config.user.password)
+    Transactor.fromDriverManager[IO](db.config.driver, db.config.userUrl, db.config.user.login, db.config.user.password)

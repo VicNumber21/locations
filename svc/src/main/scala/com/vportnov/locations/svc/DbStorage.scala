@@ -17,6 +17,7 @@ import com.vportnov.locations.utils.fs2stream.syntax._
 
 final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
   import DbStorage._
+
   override def createLocations(locations: List[Location.WithOptionalCreatedField]): LocationStream[F] =
     for {
       program <- sql.insert.locations(locations).liftToStream
