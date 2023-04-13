@@ -92,6 +92,13 @@ lazy val api =
         docker
       ).value
     )
+    .settings(
+      libraryDependencies += libs.scalatest % Test,
+      Test / testGrouping := splitToGroupsRunningInSeparateForks(
+        (Test / definedTests).value,
+        Defaults.forkOptionsTask.value
+      )
+    )
     .enablePlugins(DockerPlugin)
     .enablePlugins(PackPlugin)
     .dependsOn(utils)
