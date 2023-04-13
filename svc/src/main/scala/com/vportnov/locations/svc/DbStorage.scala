@@ -34,7 +34,7 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
 
   override def updateLocations(locations: List[Location.WithoutCreatedField]): LocationStream[F] =
     for {
-      program <- sql.update.locations(locations).liftToStream
+      program <- sql.update.locations(lastDistinct(locations)).liftToStream
       result <- program
         .withGeneratedKeys[Location.WithCreatedField]("location_id", "location_longitude", "location_latitude", "location_created")
         .transact(tx)
@@ -48,6 +48,9 @@ final class DbStorage[F[_]: Async](db: Config.Database) extends Storage[F]:
 
   override def locationStats(period: Period): LocationStatsStream[F] =
     sql.select.stats(period).stream.transact(tx)
+  
+  private def lastDistinct[T <: Location.Base](locations: List[T]): List[T] =
+    locations.zipWithIndex.sortBy(_._1.id).reverse.distinctBy(_._1.id).sortBy(_._2).map(_._1)
 
   private val tx = Transactor.fromDriverManager[F](db.driver, db.userUrl, db.user.login, db.user.password)
   

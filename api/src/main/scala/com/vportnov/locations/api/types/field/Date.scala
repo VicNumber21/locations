@@ -16,7 +16,7 @@ object Date:
 
   object meta:
     val description = "UTC timestamp in ISO format when location created rounded to a date."
-    val example = ZonedDateTime.now().toLocalDate().atTime(0, 0).atZone(ZoneOffset.UTC)
+    val example = ZonedDateTime.now().toLocalDate().atStartOfDay().atZone(ZoneOffset.UTC)
 
   given Schema[Date] = Schema.schemaForZonedDateTime.as[Date]
     .description(meta.description)

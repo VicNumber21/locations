@@ -13,7 +13,10 @@ object Location:
   type OptionalTimestamp = Option[Timestamp]
   type Date = LocalDateTime
 
-  trait Base
+  trait Base:
+    val id: Id
+    val longitude: Longitude
+    val latitude: Latitude
 
   final case class WithCreatedField(id: Id, longitude: Longitude, latitude: Latitude, created: Timestamp) extends Base
   def apply(id: Id, longitude: Longitude, latitude: Latitude, created: Timestamp) =
