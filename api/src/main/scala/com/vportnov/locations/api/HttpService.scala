@@ -18,7 +18,8 @@ import com.vportnov.locations.api.types.{ request, response }
 import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
 
-final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F]:
+// TODO make isSwaggerUIEnabled Config.http setting
+final class HttpService[F[_]: Async](storage: StorageExt[F], isSwaggerUIEnabled: Boolean = true) extends LoggingIO[F]:
   def app: HttpApp[F] = Router("/" -> (routes)).orNotFound
 
   private def badRequestResponse(message: String): ValuedEndpointOutput[response.Status.BadRequest] =
@@ -71,7 +72,8 @@ final class HttpService[F[_]: Async](storage: StorageExt[F]) extends LoggingIO[F
   private def endpoints = new HttpEndpoints(storage)
 
   private def routes: HttpRoutes[F] = 
-    Http4sServerInterpreter[F](options).toRoutes(
-      endpoints.serverEndpoints ++
-      endpoints.swaggerEndpoints(name, version)
-    )
+    val extraEndpoints = if isSwaggerUIEnabled
+      then endpoints.swaggerEndpoints(name, version) 
+      else List()
+
+    Http4sServerInterpreter[F](options).toRoutes(endpoints.serverEndpoints ++ extraEndpoints)

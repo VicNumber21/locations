@@ -93,7 +93,11 @@ lazy val api =
       ).value
     )
     .settings(
-      libraryDependencies += libs.scalatest % Test,
+      libraryDependencies ++= 
+        Seq(
+          libs.scalatest % Test,
+          libs.http4sCirce % Test
+        ),
       Test / testGrouping := splitToGroupsRunningInSeparateForks(
         (Test / definedTests).value,
         Defaults.forkOptionsTask.value
