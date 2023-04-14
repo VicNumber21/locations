@@ -188,9 +188,6 @@ lazy val autotest =
           libs.http4sDsl % IntegrationTest,
           libs.http4sEmberClient % IntegrationTest,
           libs.http4sCirce % IntegrationTest
-
-          // libs.scalacheck % IntegrationTest, // TODO remove?
-          // libs.doobieScalatest % IntegrationTest
         )
     )
     .dependsOn(svc, api)
