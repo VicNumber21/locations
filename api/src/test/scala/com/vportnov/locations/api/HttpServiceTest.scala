@@ -62,7 +62,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       result.as[Json].unsafeRunSync() shouldBe Json.arr()
   }
 
-  it should "should return all entries in JSON array if storage is not empty and no filter given" in {
+  it should "should return all entries in JSON array if storage is not empty" in {
     Given("service is connected to storage where some locations exist ")
       val locationsInStorage =
         List(
@@ -99,7 +99,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       body.toListOfTuple4 shouldBe locationsInStorage.toListOfTuple4
   }
 
-  it should "return Bad Request failure if both period and id filters are used" in {
+  it should "fail with Bad Request if both period and id filters are used" in {
     Given("service is connected to storage where no location exists ")
       val storage = new TestStorage[IO] {} 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
@@ -125,6 +125,405 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       errorId should not be empty
       noException should be thrownBy UUID.fromString(errorId)
   }
+
+  it should "forward empty period and empty id list to storage method" in {
+    Given("uri does not have extra parameters (period and id list are empty)")
+      val uri = apiUri("/locations")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe empty
+          ids shouldBe empty
+          super.getLocations(period, ids)
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "forward period with 'from' and empty id list to storage method" in {
+    Given("uri has 'from' set in period and empty id list")
+      val from = nowInUtc
+      val uri = apiUri(s"/locations?from=${from}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe model.Period(Some(from.toLocalDateTime()), None)
+          ids shouldBe empty
+          super.getLocations(period, ids)
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "forward period with 'to' and empty id list to storage method" in {
+    Given("uri has 'to' set in period and empty id list")
+      val to = nowInUtc
+      val uri = apiUri(s"/locations?to=${to}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe model.Period(None, Some(to.toLocalDateTime()))
+          ids shouldBe empty
+          super.getLocations(period, ids)
+      }
+
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "forward period with 'from' and 'to' ('from' < 'to') and empty id list to storage method" in {
+    Given("uri has 'from' and 'to' ('from' < 'to') set in period and empty id list")
+      val from = nowInUtc
+      val to = from.plusDays(3)
+      val uri = apiUri(s"/locations?from=${from}&to=${to}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe model.Period(Some(from.toLocalDateTime()), Some(to.toLocalDateTime()))
+          ids shouldBe empty
+          super.getLocations(period, ids)
+      }
+
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "forward period with 'from' and 'to' ('from' == 'to', just date count) and empty id list to storage method" in {
+    Given("uri has 'from' and 'to' ('from' == 'to', just date count) set in period and empty id list")
+      val from = nowInUtc.toLocalDate().atStartOfDay().plusHours(12).atZone(ZoneOffset.UTC)
+      val to = from.minusHours(3)
+      val uri = apiUri(s"/locations?from=${from}&to=${to}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe model.Period(Some(from.toLocalDateTime()), Some(to.toLocalDateTime()))
+          ids shouldBe empty
+          super.getLocations(period, ids)
+      }
+
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "fail with Bad Request if period with 'from' and 'to' ('from' > 'to') and empty id list are in parameters" in {
+    Given("uri has 'from' and 'to' ('from' > 'to') set in period and empty id list")
+      val from = nowInUtc
+      val to = from.minusDays(3)
+      val uri = apiUri(s"/locations?from=${from}&to=${to}")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'from' set as empty string in period and id list is empty in parameters" in {
+    Given("uri has 'from' as empty string in period and empty id list")
+      val uri = apiUri("/locations?from=")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'from' set as not ISO Date Time string in period and id list is empty in parameters" in {
+    Given("uri has 'from' as not ISO time string in period and empty id list")
+      val uri = apiUri("/locations?from=location")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'from' set as not UTC in ISO Date Time string in period and id list is empty in parameters" in {
+    Given("uri has 'from' as not UTC in ISO Date TIme time string in period and empty id list")
+      val uri = apiUri(s"/locations?from=${LocalDateTime.now()}")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'to' set as empty string in period and id list is empty in parameters" in {
+    Given("uri has 'to' as empty string in period and empty id list")
+      val uri = apiUri("/locations?to=")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'to' set as not ISO Date Time string in period and id list is empty in parameters" in {
+    Given("uri has 'to' as not ISO time string in period and empty id list")
+      val uri = apiUri("/locations?to=location")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if 'to' set as not UTC in ISO Date Time string in period and id list is empty in parameters" in {
+    Given("uri has 'to' as not UTC in ISO Date TIme time string in period and empty id list")
+      val uri = apiUri(s"/locations?to=${LocalDateTime.now()}")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "forward empty period and single alphanumeric id to storage method" in {
+    Given("uri has empty period and single alphanumeric id")
+      val id = "location123"
+      val uri = apiUri(s"/locations?id=${id}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe empty
+          ids shouldBe List(id)
+          super.getLocations(period, ids)
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "forward empty period and multiple alphanumeric ids to storage method" in {
+    Given("uri has empty period and multiple alphanumeric ids")
+      val id1 = "location123"
+      val id2 = "location456"
+      val id3 = "location789"
+      val uri = apiUri(s"/locations?id=${id1}&id=${id2}&id=${id3}")
+
+    And("service is connected to storage which expect to get such parameters")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          period shouldBe empty
+          ids shouldBe List(id1, id2, id3)
+          super.getLocations(period, ids)
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("all expectations are met")
+      result.status shouldBe Status.Ok
+  }
+
+  it should "fail with Bad Request if period is empty and id is empty string in parameters" in {
+    Given("uri has empty period and id which is empty string")
+      val uri = apiUri("/locations?id=")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  it should "fail with Bad Request if period is empty and id is not alpanumeric string in parameters" in {
+    Given("uri has empty period and id which is not alphanumeric string")
+      val uri = apiUri("/locations?id=location-123")
+
+    And("service is connected to empty storage")
+      val storage = new TestStorage[IO] {}
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
 
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value
