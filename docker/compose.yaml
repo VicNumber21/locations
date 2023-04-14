@@ -44,10 +44,10 @@ services:
       - db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_ADMIN} -d ${DB_NAME}"]
-      interval: 1s
-      timeout: 1s
+      interval: 3s
+      timeout: 3s
       retries: 120
-      start_period: 1s
+      start_period: 3s
     restart: unless-stopped
     deploy:
       resources:

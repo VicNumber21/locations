@@ -172,6 +172,28 @@ lazy val svc =
     .dependsOn(model)
     .dependsOn(grpc)
     .dependsOn(utils)
+  
+lazy val autotest =
+  Project("autotest", file("./autotest"))
+    .settings(settings.common)
+    .configs(IntegrationTest)
+    .settings(
+      Defaults.itSettings,
+      IntegrationTest / parallelExecution := false,
+      IntegrationTest / test := (IntegrationTest / test).dependsOn(api / build, svc / build).value,
+      libraryDependencies ++=
+        Seq(
+          libs.testcontainersScalatest % IntegrationTest,
+          libs.scalatest % IntegrationTest,
+          libs.http4sDsl % IntegrationTest,
+          libs.http4sEmberClient % IntegrationTest,
+          libs.http4sCirce % IntegrationTest
+
+          // libs.scalacheck % IntegrationTest, // TODO remove?
+          // libs.doobieScalatest % IntegrationTest
+        )
+    )
+    .dependsOn(svc, api)
 
 lazy val locations =
   Project("locations", file("."))
@@ -250,6 +272,7 @@ lazy val libs =
     val http4sDsl = "org.http4s" %% "http4s-dsl" % version.http4s
     val http4sCirce = "org.http4s" %% "http4s-circe" % version.http4s
     val http4sEmberServer = "org.http4s" %% "http4s-ember-server" % version.http4s
+    val http4sEmberClient = "org.http4s" %% "http4s-ember-client" % version.http4s
     
     val log4catsSLF4J = "org.typelevel" %% "log4cats-slf4j" % version.log4cats
 

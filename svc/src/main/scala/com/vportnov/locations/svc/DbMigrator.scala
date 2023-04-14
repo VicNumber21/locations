@@ -17,6 +17,8 @@ object DbMigrator:
   private def doMigration[F[_]: Sync](url: String, path: String, admin: Config.Credentials): F[Int] =
     Sync[F].delay {
       Flyway.configure()
+        .connectRetries(300)
+        .connectRetriesInterval(60)
         .dataSource(url, admin.login, admin.password)
         .locations(path)
         .load()
