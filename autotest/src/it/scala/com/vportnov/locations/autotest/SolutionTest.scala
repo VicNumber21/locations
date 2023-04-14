@@ -25,7 +25,7 @@ import doobie.postgres.implicits._
 import doobie.util.transactor.Transactor
 
 import java.time.{ LocalDateTime, ZoneOffset, ZonedDateTime }
-import org.scalatest.BeforeAndAfterEach
+import java.util.UUID
 
 
 @DoNotDiscover
@@ -42,7 +42,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
     Given("database is empty")
 
     And("uri does not have extra parameters")
-      val uri = Uri.fromString(url.Get).value
+      val uri = apiUri("/locations")
 
     When("request is send to the service")
       val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
@@ -71,7 +71,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
       )
 
     And("uri does not have extra parameters")
-      val uri = Uri.fromString(url.Get).value
+      val uri = apiUri("/locations")
 
     
     When("request is send to the service")
@@ -90,8 +90,34 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
       body.toSortedListOfTuple4 shouldBe databaseEntries
   }
 
-  private object url:
-    def Get = s"http://localhost:${apps.apiPort}/api/v1.0/locations"
+  it should "return Bad Request failure if both period and id filters are used" in {
+    Given("database is empty")
+    
+    And("uri has both period and id queries")
+      val uri = apiUri(s"/locations?from=${nowInUtc}&id=location123")
+    
+    When("request is send to the service")
+      val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
+
+    Then("status code is Bad Request (400)")
+      reply.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      reply.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  def apiUri(path: String): Uri =
+    Uri.fromString(s"http://localhost:${apps.apiPort}/api/v1.0${path}").value
+  
+  def nowInUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
 
   private case class ReplyWithBody(reply: Response[IO], body: Json)
 
@@ -137,3 +163,10 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
         )
       )
         .sortBy(_._1)
+
+    def toErrorDescription: (Int, String, String) =
+      (
+        j.findAllByKey("code").collectFirst(_.as[Int].value).value,
+        j.findAllByKey("message").collectFirst(_.asString.value).value,
+        j.findAllByKey("errorId").collectFirst(_.asString.value).value
+      )

@@ -21,6 +21,7 @@ import io.circe._
 import io.circe.syntax._
 
 import java.time.{ LocalDateTime, ZoneOffset, ZonedDateTime }
+import java.util.UUID
 
 import com.vportnov.locations.model
 import com.vportnov.locations.api.types.response
@@ -43,7 +44,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     And("uri does not have extra parameters")
-      val uri = Uri.fromString("/api/v1.0/locations").value
+      val uri = apiUri("/locations")
     
     When("request is send to the service")
       val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
@@ -78,7 +79,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     And("uri does not have extra parameters")
-      val uri = Uri.fromString("/api/v1.0/locations").value
+      val uri = apiUri("/locations")
     
     When("request is send to the service")
       val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
@@ -93,9 +94,42 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       result.headers.get[`Transfer-Encoding`].value.hasChunked shouldBe true
 
     And("body is Json array with all entries")
-      val body = result.as[Json].unsafeRunSync().toListOfTuple4
-      body shouldBe locationsInStorage.toListOfTuple4
+      val body = result.as[Json].unsafeRunSync()
+      body.isArray shouldBe true
+      body.toListOfTuple4 shouldBe locationsInStorage.toListOfTuple4
   }
+
+  it should "return Bad Request failure if both period and id filters are used" in {
+    Given("service is connected to storage where no location exists ")
+      val storage = new TestStorage[IO] {} 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    And("uri has both period and id queries")
+      val uri = apiUri(s"/locations?from=${nowInUtc}&id=location123")
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
+  def apiUri(path: String): Uri =
+    Uri.fromString(s"/api/v1.0${path}").value
+  
+  def nowInUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
 
   extension (j: Json)
     def toListOfTuple4: List[(String, BigDecimal, BigDecimal, ZonedDateTime)] =
@@ -106,6 +140,13 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
           j.findAllByKey("latitude").collectFirst(_.as[BigDecimal].value).value,
           j.findAllByKey("created").collectFirst(j => ZonedDateTime.parse(j.asString.value)).value
         )
+      )
+
+    def toErrorDescription: (Int, String, String) =
+      (
+        j.findAllByKey("code").collectFirst(_.as[Int].value).value,
+        j.findAllByKey("message").collectFirst(_.asString.value).value,
+        j.findAllByKey("errorId").collectFirst(_.asString.value).value
       )
   
   extension (locations: List[model.Location.WithCreatedField])
