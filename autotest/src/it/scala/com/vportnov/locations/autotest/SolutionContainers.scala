@@ -49,7 +49,7 @@ object SolutionContainers:
       if isFastRun
         then s"${voumeBasePath}/permanent"
         else s"${voumeBasePath}/${Random.alphanumeric.take(10).mkString}"
-    val dbPort = 65432
+    val dbPort = 55432
     val waitTimes = 1
     val db = svc.Config.Database(
       driver = "org.postgresql.Driver",
