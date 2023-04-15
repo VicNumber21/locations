@@ -13,9 +13,11 @@ import cats.effect.unsafe.implicits.global
 import fs2.Stream
 
 import org.http4s._
+import org.http4s.Method._
 import org.http4s.implicits._
 import org.http4s.headers._
 import org.http4s.circe._
+import org.http4s.client.dsl.io._
 
 import io.circe._
 import io.circe.syntax._
@@ -37,6 +39,35 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     override def locationStats(period: model.Period): LocationStatsStream[F] = Stream.empty
     override def deleteLocations(ids: model.Location.Ids): F[Int] = Sync[F].delay(0)
 
+  "POST /locations" should "fail with Bad Request if empty JSON array is given as body" in {
+    Given("service is connected to storage where no location exists ")
+      val storage = new TestStorage[IO] {} 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    And("uri does not have extra parameters")
+      val uri = apiUri("/locations")
+    
+    And("request body is empty JSON array")
+      val requestBody = Json.arr()
+    
+    When("request is send to the service")
+      val result = service.app.run(POST(uri = uri, body = requestBody)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
 
   "GET /locations" should "should return empty JSON array if nothing in storage" in {
     Given("service is connected to storage where no location exists ")

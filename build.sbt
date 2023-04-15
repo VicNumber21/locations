@@ -96,6 +96,7 @@ lazy val api =
       libraryDependencies ++= 
         Seq(
           libs.scalatest % Test,
+          libs.http4sEmberClient % Test,
           libs.http4sCirce % Test
         ),
       Test / testGrouping := splitToGroupsRunningInSeparateForks(
