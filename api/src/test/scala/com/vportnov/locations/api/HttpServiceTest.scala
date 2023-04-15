@@ -78,7 +78,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val uri = apiUri("/locations")
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Ok (200)")
       result.status shouldBe Status.Ok
@@ -113,7 +113,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val uri = apiUri("/locations")
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Ok (200)")
       result.status shouldBe Status.Ok
@@ -139,7 +139,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val uri = apiUri(s"/locations?from=${nowInUtc}&id=location123")
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -171,7 +171,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -192,7 +192,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -214,7 +214,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -237,7 +237,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -260,7 +260,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -277,7 +277,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -304,7 +304,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -331,7 +331,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -358,7 +358,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -385,7 +385,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -412,7 +412,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -439,7 +439,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -472,7 +472,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -495,7 +495,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("all expectations are met")
       result.status shouldBe Status.Ok
@@ -510,7 +510,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -537,7 +537,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Bad Request (400)")
       result.status shouldBe Status.BadRequest
@@ -567,7 +567,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     When("request is send to the service")
-      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+      val result = service.app.run(GET(uri)).unsafeRunSync()
 
     Then("status code is Internal Server Error (500)")
       result.status shouldBe Status.InternalServerError
