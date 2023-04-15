@@ -524,6 +524,37 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       noException should be thrownBy UUID.fromString(errorId)
   }
 
+  it should "fail with Internal Server Error if service method throws exception" in {
+    And("uri does not have extra parameters")
+      val uri = apiUri("/locations")
+
+    And("service is connected to storage which expect throws exception")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          throw new RuntimeException("Unexpected error")
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    When("request is send to the service")
+      val result = service.app.run(Request(Method.GET, uri)).unsafeRunSync()
+
+    Then("status code is Internal Server Error (500)")
+      result.status shouldBe Status.InternalServerError
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.InternalServerError.code
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+
+    And("message does not leak too much details")
+      message shouldBe "Internal Server Error"
+  }
 
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value
