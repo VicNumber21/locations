@@ -6,11 +6,13 @@ import org.scalatest.EitherValues._
 import org.scalatest.OptionValues._
 
 import org.http4s._
+import org.http4s.Method._
 import org.http4s.implicits._
 import org.http4s.headers._
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.circe._
+import org.http4s.client.dsl.io._
 
 import io.circe._
 import io.circe.syntax._
@@ -45,7 +47,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
       val uri = apiUri("/locations")
 
     When("request is send to the service")
-      val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
+      val ReplyWithBody(reply, body) = sendRequest(GET(uri))
 
     Then("status code is Ok (200)")
       reply.status shouldBe Status.Ok
@@ -75,7 +77,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
 
     
     When("request is send to the service")
-      val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
+      val ReplyWithBody(reply, body) = sendRequest(GET(uri))
 
     Then("status code is Ok (200)")
       reply.status shouldBe Status.Ok
@@ -97,7 +99,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
       val uri = apiUri(s"/locations?from=${nowAtUtc}&id=location123")
     
     When("request is send to the service")
-      val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
+      val ReplyWithBody(reply, body) = sendRequest(GET(uri))
 
     Then("status code is Bad Request (400)")
       reply.status shouldBe Status.BadRequest
