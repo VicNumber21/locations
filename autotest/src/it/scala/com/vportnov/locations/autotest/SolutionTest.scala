@@ -94,7 +94,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
     Given("database is empty")
     
     And("uri has both period and id queries")
-      val uri = apiUri(s"/locations?from=${nowInUtc}&id=location123")
+      val uri = apiUri(s"/locations?from=${nowAtUtc}&id=location123")
     
     When("request is send to the service")
       val ReplyWithBody(reply, body) = sendRequest(Request(method = Method.GET, uri = uri))
@@ -117,7 +117,7 @@ class SolutionTest extends AnyAutotestSpec with BeforeAndAfterEach:
   def apiUri(path: String): Uri =
     Uri.fromString(s"http://localhost:${apps.apiPort}/api/v1.0${path}").value
   
-  def nowInUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
+  def nowAtUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
 
   private case class ReplyWithBody(reply: Response[IO], body: Json)
 

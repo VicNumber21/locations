@@ -170,7 +170,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object with malformed id")
       val requestBody = Json.arr(
-        Json.obj("id" := "location-123", "longitude" := 0, "latitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location-123", "longitude" := 0, "latitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -202,7 +202,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object with longitude < -180")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "longitude" := -185, "latitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "longitude" := -185, "latitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -234,7 +234,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object with longitude > 180")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "longitude" := 185, "latitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "longitude" := 185, "latitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -266,7 +266,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object with latitude < -90")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "longitude" := 0, "latitude" := -95, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "longitude" := 0, "latitude" := -95, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -298,7 +298,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object with latitude > 90")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "longitude" := 0, "latitude" := 95, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "longitude" := 0, "latitude" := 95, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -362,7 +362,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object without id")
       val requestBody = Json.arr(
-        Json.obj("longitude" := 0, "latitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("longitude" := 0, "latitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -394,7 +394,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object without longitude")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "latitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "latitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -426,7 +426,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     
     And("request body is JSON array with location object without latitude")
       val requestBody = Json.arr(
-        Json.obj("id" := "location123", "longitude" := 0, "created" := s"${nowInUtc}")
+        Json.obj("id" := "location123", "longitude" := 0, "created" := s"${nowAtUtc}")
       )
     
     When("request is send to the service")
@@ -476,10 +476,10 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
     Given("service is connected to storage which expects to get location objects")
       val expectedLocations =
         List(
-          model.Location("001", 0, 0, Some(nowInUtc.toLocalDateTime)),
-          model.Location("002", 180, -90, Some(nowInUtc.toLocalDateTime)),
-          model.Location("003", -180, 90, Some(nowInUtc.toLocalDateTime)),
-          model.Location("003", -12.345678, 89.765432, Some(nowInUtc.toLocalDateTime))
+          model.Location("001", 0, 0, Some(nowAtUtc.toLocalDateTime)),
+          model.Location("002", 180, -90, Some(nowAtUtc.toLocalDateTime)),
+          model.Location("003", -180, 90, Some(nowAtUtc.toLocalDateTime)),
+          model.Location("003", -12.345678, 89.765432, Some(nowAtUtc.toLocalDateTime))
         )
 
       val storage = new TestStorage[IO] {
@@ -728,7 +728,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
     And("uri has both period and id queries")
-      val uri = apiUri(s"/locations?from=${nowInUtc}&id=location123")
+      val uri = apiUri(s"/locations?from=${nowAtUtc}&id=location123")
     
     When("request is send to the service")
       val result = service.app.run(GET(uri)).unsafeRunSync()
@@ -771,7 +771,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
 
   it should "forward period with 'from' and empty id list to storage method" in {
     Given("uri has 'from' set in period and empty id list")
-      val from = nowInUtc
+      val from = nowAtUtc
       val uri = apiUri(s"/locations?from=${from}")
 
     And("service is connected to storage which expect to get such parameters")
@@ -792,7 +792,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
 
   it should "forward period with 'to' and empty id list to storage method" in {
     Given("uri has 'to' set in period and empty id list")
-      val to = nowInUtc
+      val to = nowAtUtc
       val uri = apiUri(s"/locations?to=${to}")
 
     And("service is connected to storage which expect to get such parameters")
@@ -814,7 +814,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
 
   it should "forward period with 'from' and 'to' ('from' < 'to') and empty id list to storage method" in {
     Given("uri has 'from' and 'to' ('from' < 'to') set in period and empty id list")
-      val from = nowInUtc
+      val from = nowAtUtc
       val to = from.plusDays(3)
       val uri = apiUri(s"/locations?from=${from}&to=${to}")
 
@@ -837,7 +837,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
 
   it should "forward period with 'from' and 'to' ('from' == 'to', just date count) and empty id list to storage method" in {
     Given("uri has 'from' and 'to' ('from' == 'to', just date count) set in period and empty id list")
-      val from = nowInUtc.toLocalDate().atStartOfDay().plusHours(12).atZone(ZoneOffset.UTC)
+      val from = nowAtUtc.toLocalDate().atStartOfDay().plusHours(12).atZone(ZoneOffset.UTC)
       val to = from.minusHours(3)
       val uri = apiUri(s"/locations?from=${from}&to=${to}")
 
@@ -860,7 +860,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
 
   it should "fail with Bad Request if period with 'from' and 'to' ('from' > 'to') and empty id list are in parameters" in {
     Given("uri has 'from' and 'to' ('from' > 'to') set in period and empty id list")
-      val from = nowInUtc
+      val from = nowAtUtc
       val to = from.minusDays(3)
       val uri = apiUri(s"/locations?from=${from}&to=${to}")
 
@@ -1219,7 +1219,7 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value
   
-  def nowInUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
+  def nowAtUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
 
   extension (j: Json)
     def toListOfTuple4: List[(String, BigDecimal, BigDecimal, ZonedDateTime)] =
