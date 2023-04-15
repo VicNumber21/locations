@@ -556,16 +556,16 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
   }
 
   it should "fail with Internal Server Error if service method throws exception" in {
-    And("uri does not have extra parameters")
-      val uri = apiUri("/locations")
-
-    And("service is connected to storage which expect throws exception")
+    Given("service is connected to storage which throws exception")
       val storage = new TestStorage[IO] {
         override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
           throw new RuntimeException("Unexpected error")
       } 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
     
+    And("uri does not have extra parameters")
+      val uri = apiUri("/locations")
+
     When("request is send to the service")
       val result = service.app.run(GET(uri)).unsafeRunSync()
 
@@ -579,6 +579,43 @@ class HttpServiceTest extends AnyFlatSpec with GivenWhenThen:
       val body = result.as[Json].unsafeRunSync()
       body.isObject shouldBe true
       val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.InternalServerError.code
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+
+    And("message does not leak too much details")
+      message shouldBe "Internal Server Error"
+  }
+
+  it should "succeed with Ok but Internal Server Error is sent in JSON array if service method generates stream with raised error" in {
+    Given("service is connected to storage which generates stream with error")
+      val storage = new TestStorage[IO] {
+        override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[IO] =
+          Stream.raiseError(new RuntimeException("Unexpected error"))
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    And("uri does not have extra parameters")
+      val uri = apiUri("/locations")
+    
+    When("request is send to the service")
+      val result = service.app.run(GET(uri)).unsafeRunSync()
+
+    Then("status code is Ok (200)")
+      result.status shouldBe Status.Ok
+
+    And("Content-Type is application/json and UTF-8")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json, Charset.`UTF-8`)
+
+    And("Transfer-Encoding is Chunked")
+      result.headers.get[`Transfer-Encoding`].value.hasChunked shouldBe true
+
+    And("body is Json array with error object")
+      val body = result.as[Json].unsafeRunSync()
+      body.isArray shouldBe true
+      val bodyArray = body.asArray.value
+      bodyArray should have length 1
+      val (code, message, errorId) = bodyArray.head.toErrorDescription
       code shouldBe Status.InternalServerError.code
       errorId should not be empty
       noException should be thrownBy UUID.fromString(errorId)
