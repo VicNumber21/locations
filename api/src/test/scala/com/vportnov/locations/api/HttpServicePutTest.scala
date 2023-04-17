@@ -626,8 +626,6 @@ class HttpServicePutTest extends AnyFlatSpec with GivenWhenThen:
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value
   
-  def nowAtUtc = LocalDateTime.now().atZone(ZoneOffset.UTC)
-
   extension (j: Json)
     def toListOfTuple4: List[(String, BigDecimal, BigDecimal, ZonedDateTime)] =
       j.asArray.value.toList.map(j =>
