@@ -18,8 +18,7 @@ import com.vportnov.locations.api.types.{ request, response }
 import com.vportnov.locations.utils. { LoggingIO, ServerError }
 
 
-// TODO make isSwaggerUIEnabled Config.http setting
-final class HttpService[F[_]: Async](storage: StorageExt[F], isSwaggerUIEnabled: Boolean = true) extends LoggingIO[F]:
+final class HttpService[F[_]: Async](storage: StorageExt[F], isSwaggerUIEnabled: Boolean) extends LoggingIO[F]:
   def app: HttpApp[F] = Router("/" -> (routes)).orNotFound
 
   private def badRequestResponse(message: String): ValuedEndpointOutput[response.Status.BadRequest] =

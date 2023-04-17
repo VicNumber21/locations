@@ -30,6 +30,7 @@ class ConfigDefaultTestInFork extends AnyFlatSpec with GivenWhenThen:
       val settings = Config.loadSettings[IO].unsafeRunSync()
     
     Then("loadded settings are equal to ones in conf file")
+      settings.app.isSwaggerUIEnabled shouldBe true
       settings.http.host shouldBe Host.fromString("0.0.0.0").get
       settings.http.port shouldBe Port.fromInt(8080).get
       settings.grpc.host shouldBe Host.fromString("svc").get
@@ -40,6 +41,7 @@ class ConfigOverrideAllTestInFork extends AnyFlatSpec with GivenWhenThen:
   "Config" should "be allow to overrid all default settings by env variables" in {
     Given("env variables override default settings")
       val envVars = Map(
+        "SWAGGER_UI" -> "off",
         "HTTP_HOST" -> "http.host",
         "HTTP_PORT" -> "8888",
         "GRPC_HOST" -> "grpc.host",
@@ -51,6 +53,7 @@ class ConfigOverrideAllTestInFork extends AnyFlatSpec with GivenWhenThen:
       val settings = Config.loadSettings[IO].unsafeRunSync()
     
     Then("loadded settings are equal to ones in conf file")
+      settings.app.isSwaggerUIEnabled shouldBe (envVars("SWAGGER_UI").toLowerCase() == "on")
       settings.http.host shouldBe Host.fromString(envVars("HTTP_HOST")).get
       settings.http.port shouldBe Port.fromString(envVars("HTTP_PORT")).get
       settings.grpc.host shouldBe Host.fromString(envVars("GRPC_HOST")).get
@@ -61,6 +64,7 @@ class ConfigOverrideSomeTestInFork extends AnyFlatSpec with GivenWhenThen:
   "Config" should "be allow to overrid some default settings by env variables" in {
     Given("env variables override default settings")
       val envVars = Map(
+        "SWAGGER_UI" -> "ON",
         "HTTP_HOST" -> "http.host",
         "GRPC_PORT" -> "9999"
       )
@@ -70,6 +74,7 @@ class ConfigOverrideSomeTestInFork extends AnyFlatSpec with GivenWhenThen:
       val settings = Config.loadSettings[IO].unsafeRunSync()
     
     Then("loadded settings are equal to ones in conf file")
+      settings.app.isSwaggerUIEnabled shouldBe (envVars("SWAGGER_UI").toLowerCase() == "on")
       settings.http.host shouldBe Host.fromString(envVars("HTTP_HOST")).get
       settings.http.port shouldBe Port.fromInt(8080).get
       settings.grpc.host shouldBe Host.fromString("svc").get

@@ -14,7 +14,7 @@ final class HttpServer[F[_]: Async](settings: Config.Settings):
   def run: F[ExitCode] = server
 
   private val storage = new GrpcStorage[F](settings.grpc)
-  private val service = new HttpService(storage)
+  private val service = new HttpService(storage, settings.app.isSwaggerUIEnabled)
 
   private val server =
     EmberServerBuilder
