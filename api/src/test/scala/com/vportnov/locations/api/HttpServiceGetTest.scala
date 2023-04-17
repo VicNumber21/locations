@@ -33,11 +33,11 @@ class HttpServiceGetTest extends AnyFlatSpec with GivenWhenThen:
   info("As a developer I need http service which provides http api (GET) to whole solution")
 
   trait TestStorage[F[_]: Sync] extends model.StorageExt[F]:
-    override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = Stream.empty
+    override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = ???
     override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] = Stream.empty
-    override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] = Stream.empty
-    override def locationStats(period: model.Period): LocationStatsStream[F] = Stream.empty
-    override def deleteLocations(ids: model.Location.Ids): F[Int] = Sync[F].delay(0)
+    override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] = ???
+    override def locationStats(period: model.Period): LocationStatsStream[F] = ???
+    override def deleteLocations(ids: model.Location.Ids): F[Int] = ???
 
   "GET /locations" should "should return empty JSON array if nothing in storage" in {
     Given("service is connected to storage where no location exists ")

@@ -33,11 +33,11 @@ class HttpServicePutTest extends AnyFlatSpec with GivenWhenThen:
   info("As a developer I need http service which provides http api (PUT) to whole solution")
 
   trait TestStorage[F[_]: Sync] extends model.StorageExt[F]:
-    override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = Stream.empty
-    override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] = Stream.empty
+    override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = ???
+    override def getLocations(period: model.Period, ids: model.Location.Ids): LocationStream[F] = ???
     override def updateLocations(locations: List[model.Location.WithoutCreatedField]): LocationStream[F] = Stream.empty
-    override def locationStats(period: model.Period): LocationStatsStream[F] = Stream.empty
-    override def deleteLocations(ids: model.Location.Ids): F[Int] = Sync[F].delay(0)
+    override def locationStats(period: model.Period): LocationStatsStream[F] = ???
+    override def deleteLocations(ids: model.Location.Ids): F[Int] = ???
 
   "PUT /locations" should "fail with Bad Request if empty JSON array is given as body" in {
     Given("service is connected to storage where no location exists ")
