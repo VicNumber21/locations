@@ -56,7 +56,7 @@ class HttpServiceDeleteTest extends AnyFlatSpec with GivenWhenThen:
   }
 
   it should "return No Content if storage reports that something was deleted" in {
-    Given("service is connected to storage where no location exists ")
+    Given("service is connected to storage where the requested locations exist ")
       val storage = new TestStorage[IO] {
         override def deleteLocations(ids: model.Location.Ids): IO[Int] = IO.delay(2)
       } 

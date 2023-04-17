@@ -28,7 +28,7 @@ import com.vportnov.locations.model
 
 
 class HttpServiceDeleteOneTest extends AnyFlatSpec with GivenWhenThen:
-  info("As a developer I need http service which provides http api (DELETE) to whole solution")
+  info("As a developer I need http service which provides http api (DELETE ONE) to whole solution")
 
   trait TestStorage[F[_]: Sync] extends model.StorageExt[F]:
     override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = ???
