@@ -26,8 +26,6 @@ import java.time.{ LocalDateTime, ZoneOffset, ZonedDateTime }
 import java.util.UUID
 
 import com.vportnov.locations.model
-import com.vportnov.locations.api.types.response
-import com.vportnov.locations.model.Period
 
 
 class HttpServiceGetStatsTest extends AnyFlatSpec with GivenWhenThen:
@@ -40,7 +38,7 @@ class HttpServiceGetStatsTest extends AnyFlatSpec with GivenWhenThen:
     override def locationStats(period: model.Period): LocationStatsStream[F] = Stream.empty
     override def deleteLocations(ids: model.Location.Ids): F[Int] = ???
 
-  "GET /locations/-/stats" should "should return empty JSON array if nothing in storage" in {
+  "GET /locations/-/stats" should "return empty JSON array if nothing in storage" in {
     Given("service is connected to storage where no location exists ")
       val storage = new TestStorage[IO] {} 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
@@ -64,7 +62,7 @@ class HttpServiceGetStatsTest extends AnyFlatSpec with GivenWhenThen:
       result.as[Json].unsafeRunSync() shouldBe Json.arr()
   }
 
-  it should "should return all entries in JSON array if storage is not empty" in {
+  it should "return all entries in JSON array if storage is not empty" in {
     Given("service is connected to storage which returns some statistics ")
       val today = LocalDateTime.now.toLocalDate.atStartOfDay
       val statisticsFromStore =
@@ -400,7 +398,7 @@ class HttpServiceGetStatsTest extends AnyFlatSpec with GivenWhenThen:
   it should "fail with Internal Server Error if service method throws exception" in {
     Given("service is connected to storage which throws exception")
       val storage = new TestStorage[IO] {
-        override def locationStats(period: Period): LocationStatsStream[IO] =
+        override def locationStats(period: model.Period): LocationStatsStream[IO] =
           throw new RuntimeException("Unexpected error")
       } 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
@@ -432,7 +430,7 @@ class HttpServiceGetStatsTest extends AnyFlatSpec with GivenWhenThen:
   it should "succeed with Ok but Internal Server Error is sent in JSON array if service method generates stream with raised error" in {
     Given("service is connected to storage which generates stream with error")
       val storage = new TestStorage[IO] {
-        override def locationStats(period: Period): LocationStatsStream[IO] =
+        override def locationStats(period: model.Period): LocationStatsStream[IO] =
           Stream.raiseError(new RuntimeException("Unexpected error"))
       } 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)

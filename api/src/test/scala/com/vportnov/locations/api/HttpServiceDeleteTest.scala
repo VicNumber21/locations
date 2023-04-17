@@ -22,15 +22,13 @@ import org.http4s.client.dsl.io._
 import io.circe._
 import io.circe.syntax._
 
-import java.time.{ LocalDateTime, ZoneOffset, ZonedDateTime }
 import java.util.UUID
 
 import com.vportnov.locations.model
-import com.vportnov.locations.api.types.response
 
 
 class HttpServiceDeleteTest extends AnyFlatSpec with GivenWhenThen:
-  info("As a developer I need http service which provides http api (GET) to whole solution")
+  info("As a developer I need http service which provides http api (DELETE) to whole solution")
 
   trait TestStorage[F[_]: Sync] extends model.StorageExt[F]:
     override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[F] = ???
@@ -39,7 +37,7 @@ class HttpServiceDeleteTest extends AnyFlatSpec with GivenWhenThen:
     override def locationStats(period: model.Period): LocationStatsStream[F] = ???
     override def deleteLocations(ids: model.Location.Ids): F[Int] = Sync[F].delay(0)
 
-  "DELETE /locations" should "should return Ok if storage reports that nothing was deleted" in {
+  "DELETE /locations" should "return Ok if storage reports that nothing was deleted" in {
     Given("service is connected to storage where no location exists ")
       val storage = new TestStorage[IO] {} 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
@@ -57,7 +55,7 @@ class HttpServiceDeleteTest extends AnyFlatSpec with GivenWhenThen:
       result.as[String].unsafeRunSync() shouldBe empty
   }
 
-  it should "should return No Content if storage reports that something was deleted" in {
+  it should "return No Content if storage reports that something was deleted" in {
     Given("service is connected to storage where no location exists ")
       val storage = new TestStorage[IO] {
         override def deleteLocations(ids: model.Location.Ids): IO[Int] = IO.delay(2)

@@ -39,7 +39,7 @@ class HttpServiceGetTest extends AnyFlatSpec with GivenWhenThen:
     override def locationStats(period: model.Period): LocationStatsStream[F] = ???
     override def deleteLocations(ids: model.Location.Ids): F[Int] = ???
 
-  "GET /locations" should "should return empty JSON array if nothing in storage" in {
+  "GET /locations" should "return empty JSON array if nothing in storage" in {
     Given("service is connected to storage where no location exists ")
       val storage = new TestStorage[IO] {} 
       val service = new HttpService(storage, isSwaggerUIEnabled = false)
@@ -63,7 +63,7 @@ class HttpServiceGetTest extends AnyFlatSpec with GivenWhenThen:
       result.as[Json].unsafeRunSync() shouldBe Json.arr()
   }
 
-  it should "should return all entries in JSON array if storage is not empty" in {
+  it should "return all entries in JSON array if storage is not empty" in {
     Given("service is connected to storage where some locations exist ")
       val locationsInStorage =
         List(

@@ -26,7 +26,6 @@ import java.time.{ LocalDateTime, ZoneOffset, ZonedDateTime }
 import java.util.UUID
 
 import com.vportnov.locations.model
-import com.vportnov.locations.api.types.response
 
 
 class HttpServicePostTest extends AnyFlatSpec with GivenWhenThen:
@@ -540,7 +539,7 @@ class HttpServicePostTest extends AnyFlatSpec with GivenWhenThen:
       result.as[Json].unsafeRunSync() shouldBe Json.arr()
   }
 
-  it should "should return all entries in JSON array if storage is not empty" in {
+  it should "return all entries in JSON array if storage is not empty" in {
     Given("service is connected to storage where some locations exist ")
       val locationsInStorage =
         List(
