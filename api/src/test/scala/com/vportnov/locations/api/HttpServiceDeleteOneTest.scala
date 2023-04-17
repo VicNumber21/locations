@@ -187,6 +187,36 @@ class HttpServiceDeleteOneTest extends AnyFlatSpec with GivenWhenThen:
     And("message does not leak too much details")
       message shouldBe "Internal Server Error"
   }
+  
+  it should "fail with Bad Request if service method returns IO with raised IllegalArgumentException" in {
+    Given("service is connected to storage which returns IO with raised IllegalArgumentException")
+      val storage = new TestStorage[IO] {
+        override def deleteLocations(ids: model.Location.Ids): IO[Int] =
+          IO.raiseError(new IllegalArgumentException("Bad parameter"))
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    And("uri has a valid location id")
+      val uri = apiUri("/locations/location123")
+
+    When("request is send to the service")
+      val result = service.app.run(DELETE(uri)).unsafeRunSync()
+
+    Then("status code is Bad Request (400)")
+      result.status shouldBe Status.BadRequest
+
+    And("Content-Type is application/json")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json)
+
+    And("body is Json object with error description")
+      val body = result.as[Json].unsafeRunSync()
+      body.isObject shouldBe true
+      val (code, message, errorId) = body.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
 
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value

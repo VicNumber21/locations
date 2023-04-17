@@ -660,6 +660,46 @@ class HttpServicePostTest extends AnyFlatSpec with GivenWhenThen:
       message shouldBe "Internal Server Error"
   }
 
+  it should "succeed with Created but Bad Request is sent in JSON array if service method generates stream with raised IllegalArgumentException" in {
+    Given("service is connected to storage which generates stream with IllegalArgumentException")
+      val storage = new TestStorage[IO] {
+        override def createLocations(locations: List[model.Location.WithOptionalCreatedField]): LocationStream[IO] =
+          Stream.raiseError(new IllegalArgumentException("Bad parameter"))
+      } 
+      val service = new HttpService(storage, isSwaggerUIEnabled = false)
+    
+    And("uri does not have extra parameters")
+      val uri = apiUri("/locations")
+    
+    And("request body is JSON array with valid location object")
+      val requestBody = Json.arr(
+        Json.obj("id" := "location123", "longitude" := 0, "latitude" := 0)
+      )
+    
+    When("request is send to the service")
+      val result = service.app.run(POST(uri = uri, body = requestBody)).unsafeRunSync()
+
+    Then("status code is Created (201)")
+      result.status shouldBe Status.Created
+
+    And("Content-Type is application/json and UTF-8")
+      result.headers.get[`Content-Type`].value shouldBe `Content-Type`(MediaType.application.json, Charset.`UTF-8`)
+
+    And("Transfer-Encoding is Chunked")
+      result.headers.get[`Transfer-Encoding`].value.hasChunked shouldBe true
+
+    And("body is Json array with error object")
+      val body = result.as[Json].unsafeRunSync()
+      body.isArray shouldBe true
+      val bodyArray = body.asArray.value
+      bodyArray should have length 1
+      val (code, message, errorId) = bodyArray.head.toErrorDescription
+      code shouldBe Status.BadRequest.code
+      message should not be empty
+      errorId should not be empty
+      noException should be thrownBy UUID.fromString(errorId)
+  }
+
   def apiUri(path: String): Uri =
     Uri.fromString(s"/api/v1.0${path}").value
   
